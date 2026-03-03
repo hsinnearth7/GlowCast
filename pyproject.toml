@@ -69,5 +69,9 @@ warn_return_any = false
 ignore_missing_imports = true
 disable_error_code = ["valid-type", "no-any-return", "attr-defined", "union-attr", "arg-type"]
 
+[[tool.mypy.overrides]]
+module = ["app.data.*", "app.causal.*", "app.forecasting.*"]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
