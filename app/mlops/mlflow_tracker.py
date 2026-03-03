@@ -61,6 +61,7 @@ try:
     _MLFLOW_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _MLFLOW_AVAILABLE = False
+    MlflowClient = None  # type: ignore[assignment,misc]
 
 # ---------------------------------------------------------------------------
 # Fallback JSON log directory
