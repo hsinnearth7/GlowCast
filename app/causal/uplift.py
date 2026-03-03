@@ -167,7 +167,7 @@ def _auuc_score(cate_pred: np.ndarray, treatment: np.ndarray, outcome: np.ndarra
 
     # Trapezoid integration, normalised to [0, 1]
     fractions = np.linspace(0, 1, n + 1)
-    _trapz = getattr(np, "trapezoid", np.trapz)
+    _trapz = getattr(np, "trapezoid", getattr(np, "trapz", None))
     raw_auuc = float(_trapz(cumulative_uplift, fractions))
 
     # Random baseline: AUUC ≈ 0 (since random ordering yields no uplift lift).
