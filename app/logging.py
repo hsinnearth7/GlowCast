@@ -26,11 +26,11 @@ def setup_logging(*, json_output: bool = False) -> None:
     )
 
     structlog.configure(
-        processors=[
+        processors=[  # type: ignore[list-item]
             *shared_processors,
             output_renderer,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],  # type: ignore[list-item]
+        ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
