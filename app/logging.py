@@ -19,17 +19,18 @@ def setup_logging(*, json_output: bool = False) -> None:
         structlog.processors.UnicodeDecoder(),
     ]
 
-    if json_output:
-        output_renderer = structlog.processors.JSONRenderer()
-    else:
-        output_renderer = structlog.dev.ConsoleRenderer()
+    output_renderer: structlog.types.Processor = (
+        structlog.processors.JSONRenderer()
+        if json_output
+        else structlog.dev.ConsoleRenderer()
+    )
 
     structlog.configure(
         processors=[
             *shared_processors,
             output_renderer,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
+        ],  # type: ignore[list-item]
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
