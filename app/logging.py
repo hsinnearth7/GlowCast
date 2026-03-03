@@ -26,8 +26,8 @@ def setup_logging(*, json_output: bool = False) -> None:
     )
 
     structlog.configure(
-        processors=[  # type: ignore[list-item]
-            *shared_processors,
+        processors=[
+            *shared_processors,  # type: ignore[list-item]
             output_renderer,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
