@@ -1,0 +1,12 @@
+services:
+  analytics:
+    build: .
+    container_name: glowcast-analytics
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./outputs:/app/outputs
+    environment:
+      - PYTHONPATH=/app
+      - GLOWCAST_ENV=production
+    command: ["python", "-m", "app.data.data_generator"]

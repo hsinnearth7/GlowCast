@@ -1,0 +1,140 @@
+# GlowCast Configuration
+# Beauty & Skincare Supply Chain AI Platform
+
+data:
+  n_skus: 5000
+  n_fcs: 12
+  n_countries: 5
+  n_years: 3
+  start_date: "2022-01-01"
+  n_days: 1095  # 3 years
+  viral_prob: 0.03
+  social_lag_days: 3
+  global_seed: 42
+  price_tier_distribution: [0.40, 0.40, 0.20]  # Mass / Prestige / Luxury
+  discount_rates: [1.0, 0.85, 0.75, 0.60]
+  discount_probs: [0.65, 0.20, 0.10, 0.05]
+  channels: ["Online", "Retail", "Marketplace"]
+  channel_probs: [0.50, 0.30, 0.20]
+  skin_types: ["Oily_Skin", "Dry_Skin", "Combo_Skin", "Mature_Skin"]
+  skin_type_probs: [0.30, 0.25, 0.30, 0.15]
+  age_groups: ["18-24", "25-34", "35-44", "45+"]
+  age_group_probs: [0.25, 0.35, 0.25, 0.15]
+  intermittent_pct: 0.30
+
+segments:
+  concerns: ["AntiAging", "Acne", "Hydrating", "Brightening", "SunProtection"]
+  textures: ["Lightweight", "Rich"]
+  price_tiers:
+    Mass: {range: [5, 25], cogs_pct: [0.30, 0.40], margin: [0.50, 0.60]}
+    Prestige: {range: [25, 80], cogs_pct: [0.20, 0.30], margin: [0.65, 0.75]}
+    Luxury: {range: [80, 280], cogs_pct: [0.10, 0.15], margin: [0.74, 0.82]}
+  brands: ["LuxeVita", "SolGuard", "GlowRush", "PureBasics", "VelvetAura"]
+  temperature_switch_point: 23.5  # Celsius - Lightweight vs Rich demand switch
+
+model:
+  naive_ma30:
+    window: 30
+  sarimax:
+    order: [1, 1, 1]
+    seasonal_order: [1, 1, 1, 7]
+    enforce_stationarity: false
+    enforce_invertibility: false
+  xgboost:
+    n_estimators: 500
+    learning_rate: 0.05
+    max_depth: 5
+    min_child_weight: 3
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+  lightgbm:
+    n_estimators: 500
+    learning_rate: 0.05
+    max_depth: 5
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    num_leaves: 31
+  chronos2_zs:
+    model_id: "amazon/chronos-bolt-small"
+    context_length: 512
+    prediction_length: 14
+  routing_ensemble:
+    cold_start_threshold_days: 60
+    intermittent_threshold_cv: 1.5
+
+evaluation:
+  n_windows: 12
+  step_size: 30
+  horizon: 14
+  conformal_coverage: 0.90
+  wilcoxon_alpha: 0.05
+  mape_targets:
+    overall: 12.0
+    stable: 8.0
+    seasonal: 15.0
+    promo: 22.0
+    cold_start: 19.0
+
+experimentation:
+  cuped:
+    n_bootstrap: 1000
+    target_rho: 0.74
+    target_variance_reduction: 0.55
+  sequential:
+    alpha: 0.05
+    power: 0.80
+  power_analysis:
+    alpha: 0.05
+    power: 0.80
+    mde_levels: [0.03, 0.05, 0.10]
+  bucketing:
+    n_buckets: 1000
+    srm_alpha: 0.01
+
+causal:
+  dowhy:
+    refutation_methods: ["random_common_cause", "placebo_treatment", "data_subset"]
+    n_simulations: 100
+  uplift:
+    treatment_ratio: 0.20
+    learners: ["s_learner", "t_learner", "x_learner", "causal_forest"]
+    n_bootstrap: 500
+    cate_threshold: 0.3
+
+monitoring:
+  drift:
+    ks_threshold: 0.05
+    psi_threshold: 0.1
+    mape_threshold: 0.20
+    consecutive_days: 7
+  retrain:
+    check_interval_hours: 24
+    min_training_rows: 10000
+  feature_store:
+    offline_ttl_hours: 24
+    online_ttl_seconds: 300
+
+sql:
+  engine: "sqlite"
+  dos_woc:
+    rolling_window_days: 90
+    healthy_woc_range: [4, 6]
+  scrap_risk:
+    at_risk_days: 90
+    action_thresholds:
+      write_off: 0
+      markdown: 30
+      transfer: 90
+  cross_zone:
+    penalty_per_unit: 50
+    target_rate: 0.05
+  demand_anomaly:
+    z_threshold: 2.0
+    rolling_window: 30
+  social_lead_lag:
+    max_lag_days: 14
