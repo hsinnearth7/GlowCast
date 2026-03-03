@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install ruff mypy types-PyYAML
+      - run: pip install -e ".[dev]"
+      - run: pip install types-PyYAML
       - run: ruff check app/ tests/
       - run: mypy app/ --ignore-missing-imports
 
