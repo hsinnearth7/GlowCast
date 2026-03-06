@@ -40,7 +40,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
-      - run: python -m app.data.data_generator --validate-only
+      - run: python -m app.data.data_generator --n-skus 50 --n-days 90 --validate-only
         timeout-minutes: 10
 
   docker:
