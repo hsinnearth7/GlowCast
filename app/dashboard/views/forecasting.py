@@ -2,10 +2,9 @@
 
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
 from app.dashboard.data import (
-    load_model_comparison, load_segment_evaluation, load_walkforward_cv,
-    load_ablation_study, MODEL_COLORS, SEGMENT_GENES, CONCERNS, TEXTURES,
+    load_model_comparison, load_walkforward_cv,
+    load_ablation_study, MODEL_COLORS, SEGMENT_GENES,
 )
 
 
@@ -82,7 +81,7 @@ def render(metric_card):
 
     cv = load_walkforward_cv()
     selected_models = st.multiselect(
-        "Select models", MODELS := list(MODEL_COLORS.keys()),
+        "Select models", _MODELS := list(MODEL_COLORS.keys()),
         default=["Routing Ensemble", "LightGBM", "NaiveMA(30)"],
     )
 

@@ -2,9 +2,6 @@
 
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
-import numpy as np
 from app.dashboard.data import (
     load_dowhy_results, load_uplift_results, load_uplift_curve,
     load_cuped_results, load_sequential_test,
@@ -18,7 +15,7 @@ def render(metric_card):
     # ── KPI Row ──
     dowhy = load_dowhy_results()
     cuped = load_cuped_results()
-    uplift = load_uplift_results()
+    load_uplift_results()
 
     cols = st.columns(6)
     kpis = [

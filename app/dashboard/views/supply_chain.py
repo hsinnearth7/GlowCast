@@ -2,10 +2,9 @@
 
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
 from app.dashboard.data import (
     load_inventory_dos, load_scrap_risk, load_cross_zone,
-    load_demand_anomalies, load_social_lead_lag, CONCERNS,
+    load_demand_anomalies, load_social_lead_lag,
 )
 
 
@@ -30,8 +29,8 @@ def render(metric_card):
         ("Inventory Value", f"${total_inv_value/1e6:.1f}M", f"{len(dos)} records", "neutral", "#3498db"),
         ("Healthy Status", f"{healthy_pct:.0f}%", "DoS target", "good", "#2ecc71"),
         ("High Risk", f"{high_risk_pct:.0f}%", "Action needed", "bad", "#e74c3c"),
-        ("Cross-Zone", f"{avg_cross_pct:.1f}%", f"Target <5%", "bad" if avg_cross_pct > 5 else "good", "#e67e22"),
-        ("Penalties", f"${total_penalty/1e3:.0f}K", f"@$50/unit", "bad", "#9b59b6"),
+        ("Cross-Zone", f"{avg_cross_pct:.1f}%", "Target <5%", "bad" if avg_cross_pct > 5 else "good", "#e67e22"),
+        ("Penalties", f"${total_penalty/1e3:.0f}K", "@$50/unit", "bad", "#9b59b6"),
         ("Critical Batches", f"{critical_batches}", "Expiry <7d", "bad" if critical_batches > 0 else "good", "#e74c3c"),
     ]
     for col, (label, value, delta, dtype, color) in zip(cols, kpis):
@@ -174,7 +173,7 @@ def render(metric_card):
     pivot_social = social.pivot_table(values="Pearson_R", index="Concern", columns="Lag_Days")
 
     fig_social = go.Figure(data=go.Heatmap(
-        z=pivot_social.values, x=[f"T-{l}" for l in pivot_social.columns],
+        z=pivot_social.values, x=[f"T-{lag}" for lag in pivot_social.columns],
         y=pivot_social.index.tolist(),
         colorscale="RdBu_r", zmid=0,
         text=pivot_social.round(2).values,

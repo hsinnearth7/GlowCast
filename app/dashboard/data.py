@@ -19,16 +19,36 @@ FC_IDS = [f"FC_{c}_{i+1}" for c, n in COUNTRIES.items() for i in range(n)]
 PRICE_TIERS = ["Mass", "Prestige", "Luxury"]
 
 SEGMENT_GENES = {
-    ("AntiAging", "Lightweight"): dict(n=750, base_lambda=6, elasticity=-0.5, seasonal_amp=0.05, social_sens=0.15, shelf_life=730, mape_target=8.5),
-    ("AntiAging", "Rich"): dict(n=1250, base_lambda=4, elasticity=-0.4, seasonal_amp=0.10, social_sens=0.08, shelf_life=730, mape_target=7.5),
-    ("Acne", "Lightweight"): dict(n=625, base_lambda=14, elasticity=-2.0, seasonal_amp=0.30, social_sens=0.70, shelf_life=540, mape_target=13.0),
-    ("Acne", "Rich"): dict(n=250, base_lambda=8, elasticity=-1.5, seasonal_amp=0.15, social_sens=0.40, shelf_life=730, mape_target=14.0),
-    ("Hydrating", "Lightweight"): dict(n=500, base_lambda=16, elasticity=-1.5, seasonal_amp=0.40, social_sens=0.25, shelf_life=730, mape_target=10.0),
-    ("Hydrating", "Rich"): dict(n=625, base_lambda=15, elasticity=-1.2, seasonal_amp=0.45, social_sens=0.15, shelf_life=910, mape_target=9.5),
-    ("Brightening", "Lightweight"): dict(n=375, base_lambda=10, elasticity=-0.9, seasonal_amp=0.30, social_sens=0.50, shelf_life=450, mape_target=14.5),
-    ("Brightening", "Rich"): dict(n=375, base_lambda=7, elasticity=-0.7, seasonal_amp=0.15, social_sens=0.30, shelf_life=730, mape_target=13.5),
-    ("SunProtection", "Lightweight"): dict(n=500, base_lambda=12, elasticity=-0.6, seasonal_amp=0.90, social_sens=0.65, shelf_life=540, mape_target=15.5),
-    ("SunProtection", "Rich"): dict(n=125, base_lambda=5, elasticity=-0.5, seasonal_amp=0.60, social_sens=0.30, shelf_life=540, mape_target=16.0),
+    ("AntiAging", "Lightweight"): dict(
+        n=750, base_lambda=6, elasticity=-0.5, seasonal_amp=0.05,
+        social_sens=0.15, shelf_life=730, mape_target=8.5),
+    ("AntiAging", "Rich"): dict(
+        n=1250, base_lambda=4, elasticity=-0.4, seasonal_amp=0.10,
+        social_sens=0.08, shelf_life=730, mape_target=7.5),
+    ("Acne", "Lightweight"): dict(
+        n=625, base_lambda=14, elasticity=-2.0, seasonal_amp=0.30,
+        social_sens=0.70, shelf_life=540, mape_target=13.0),
+    ("Acne", "Rich"): dict(
+        n=250, base_lambda=8, elasticity=-1.5, seasonal_amp=0.15,
+        social_sens=0.40, shelf_life=730, mape_target=14.0),
+    ("Hydrating", "Lightweight"): dict(
+        n=500, base_lambda=16, elasticity=-1.5, seasonal_amp=0.40,
+        social_sens=0.25, shelf_life=730, mape_target=10.0),
+    ("Hydrating", "Rich"): dict(
+        n=625, base_lambda=15, elasticity=-1.2, seasonal_amp=0.45,
+        social_sens=0.15, shelf_life=910, mape_target=9.5),
+    ("Brightening", "Lightweight"): dict(
+        n=375, base_lambda=10, elasticity=-0.9, seasonal_amp=0.30,
+        social_sens=0.50, shelf_life=450, mape_target=14.5),
+    ("Brightening", "Rich"): dict(
+        n=375, base_lambda=7, elasticity=-0.7, seasonal_amp=0.15,
+        social_sens=0.30, shelf_life=730, mape_target=13.5),
+    ("SunProtection", "Lightweight"): dict(
+        n=500, base_lambda=12, elasticity=-0.6, seasonal_amp=0.90,
+        social_sens=0.65, shelf_life=540, mape_target=15.5),
+    ("SunProtection", "Rich"): dict(
+        n=125, base_lambda=5, elasticity=-0.5, seasonal_amp=0.60,
+        social_sens=0.30, shelf_life=540, mape_target=16.0),
 }
 
 MODELS = ["NaiveMA(30)", "SARIMAX", "XGBoost", "LightGBM", "Chronos-2 ZS", "Routing Ensemble"]
@@ -59,11 +79,16 @@ def load_model_comparison():
 def load_segment_evaluation():
     """Slice evaluation: 5 segments with CIs and effect sizes."""
     segments = [
-        {"Segment": "Overall",            "MAPE": 12.0, "CI_lo": 11.2, "CI_hi": 12.8, "RMSE": 8.3,  "Coverage": 91, "N_SKUs": 5000, "Cohen_d": None},
-        {"Segment": "Stable (AntiAging)", "MAPE": 8.0,  "CI_lo": 7.3,  "CI_hi": 8.7,  "RMSE": 5.1,  "Coverage": 94, "N_SKUs": 3200, "Cohen_d": 1.2},
-        {"Segment": "Seasonal (SunProt)", "MAPE": 15.0, "CI_lo": 13.8, "CI_hi": 16.2, "RMSE": 12.7, "Coverage": 89, "N_SKUs": 1200, "Cohen_d": 0.9},
-        {"Segment": "Promo Days",         "MAPE": 22.0, "CI_lo": 19.5, "CI_hi": 24.5, "RMSE": 18.4, "Coverage": 78, "N_SKUs": None, "Cohen_d": 2.5},
-        {"Segment": "Cold Start (<60d)",  "MAPE": 19.0, "CI_lo": 16.8, "CI_hi": 21.2, "RMSE": 14.2, "Coverage": 85, "N_SKUs": 600,  "Cohen_d": 1.8},
+        {"Segment": "Overall", "MAPE": 12.0, "CI_lo": 11.2,
+         "CI_hi": 12.8, "RMSE": 8.3, "Coverage": 91, "N_SKUs": 5000, "Cohen_d": None},
+        {"Segment": "Stable (AntiAging)", "MAPE": 8.0, "CI_lo": 7.3,
+         "CI_hi": 8.7, "RMSE": 5.1, "Coverage": 94, "N_SKUs": 3200, "Cohen_d": 1.2},
+        {"Segment": "Seasonal (SunProt)", "MAPE": 15.0, "CI_lo": 13.8,
+         "CI_hi": 16.2, "RMSE": 12.7, "Coverage": 89, "N_SKUs": 1200, "Cohen_d": 0.9},
+        {"Segment": "Promo Days", "MAPE": 22.0, "CI_lo": 19.5,
+         "CI_hi": 24.5, "RMSE": 18.4, "Coverage": 78, "N_SKUs": None, "Cohen_d": 2.5},
+        {"Segment": "Cold Start (<60d)", "MAPE": 19.0, "CI_lo": 16.8,
+         "CI_hi": 21.2, "RMSE": 14.2, "Coverage": 85, "N_SKUs": 600, "Cohen_d": 1.8},
     ]
     return pd.DataFrame(segments)
 
@@ -205,10 +230,14 @@ def load_social_lead_lag():
             r = base_r + np.random.normal(0, 0.05)
             r = np.clip(r, -0.2, 0.85)
             abs_r = abs(r)
-            if abs_r > 0.7: rel = "Strong_Lead"
-            elif abs_r > 0.5: rel = "Moderate_Lead"
-            elif abs_r > 0.3: rel = "Weak_Lead"
-            else: rel = "Negligible"
+            if abs_r > 0.7:
+                rel = "Strong_Lead"
+            elif abs_r > 0.5:
+                rel = "Moderate_Lead"
+            elif abs_r > 0.3:
+                rel = "Weak_Lead"
+            else:
+                rel = "Negligible"
             rows.append({
                 "Concern": concern, "Lag_Days": lag, "Pearson_R": round(r, 3),
                 "Abs_R": round(abs_r, 3), "Relationship": rel,
@@ -243,8 +272,8 @@ def load_uplift_curve():
     rows = []
     for i, f in enumerate(fractions):
         row = {"Fraction": round(f, 2)}
-        for l, c in curves.items():
-            row[l] = round(c[i], 4)
+        for name, vals in curves.items():
+            row[name] = round(vals[i], 4)
         rows.append(row)
     return pd.DataFrame(rows)
 

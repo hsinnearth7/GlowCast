@@ -5,8 +5,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from app.dashboard.data import (
     load_model_comparison, load_segment_evaluation, load_business_impact,
-    load_platform_flow, load_uplift_results, load_cuped_results,
-    load_fairness_results,
+    load_platform_flow, load_uplift_results, load_fairness_results,
 )
 
 

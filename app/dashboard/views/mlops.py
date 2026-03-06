@@ -2,9 +2,6 @@
 
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
-import pandas as pd
-import numpy as np
 from app.dashboard.data import (
     load_drift_history, load_feature_importance, load_fairness_results,
 )
@@ -33,7 +30,7 @@ def render(metric_card):
          "good" if is_healthy else "bad", "#2ecc71" if is_healthy else "#e74c3c"),
         ("Current MAPE", f"{current_mape:.1f}%", "Latest reading", "good" if current_mape < 15 else "bad", "#3498db"),
         ("Data Drift Events", f"{data_drift_events}", f"of {len(drift)} days", "neutral", "#e67e22"),
-        ("Pred Drift Events", f"{pred_drift_events}", f"PSI > 0.1", "neutral", "#9b59b6"),
+        ("Pred Drift Events", f"{pred_drift_events}", "PSI > 0.1", "neutral", "#9b59b6"),
         ("Concept Drift", f"{drift_events}", "MAPE > 20%", "bad" if drift_events > 3 else "good", "#e74c3c"),
         ("Top Feature", features.iloc[0]["Feature"], f'SHAP {features.iloc[0]["SHAP_mean"]:.2f}', "neutral", "#1abc9c"),
     ]
