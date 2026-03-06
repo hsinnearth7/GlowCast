@@ -35,6 +35,12 @@ docker compose build && docker compose up -d     # Docker
 - Shelf life: 450 days (Brightening/Light) to 910 days (Hydrating/Rich)
 - Treatment ratio: 20/80 for uplift (why X-Learner wins)
 
+## Development Guidelines
+- After editing Python files, verify syntax with `python -m py_compile <file>`.
+- Run `pytest tests/ -v` after code changes, not as a final step.
+- Check for scalar vs array type mismatches in numpy/pandas operations.
+- Always JSON-serialize numpy types before any API response.
+
 ## Test Organization
 - Data tests: test_config, test_segment_genes, test_data_generator, test_contracts
 - Model tests: test_forecasting_models, test_hierarchy, test_evaluation, test_ml_leakage

@@ -103,6 +103,25 @@ Treatment/control: 20/80 (X-Learner wins due to cross-estimation on imbalanced d
 
 ---
 
+## Interactive Dashboard
+
+GlowCast includes a 5-page Streamlit dashboard for real-time KPI monitoring and visual analytics:
+
+| Page | Description |
+|------|-------------|
+| **Executive Overview** | 6 top-level KPIs, platform data flow (Sankey), business impact table, 6-model radar, segment evaluation, uplift comparison, fairness heatmap |
+| **Demand & Forecasting** | 6-model MAPE ranking, grouped metrics, 12-fold walk-forward CV, routing ensemble treemap, ablation study, segment heatmap |
+| **Inventory & Supply Chain** | Days-of-Supply heatmap (FC x Concern), scrap risk distribution, cross-zone penalties, demand anomaly timeline, social lead-lag correlation |
+| **Causal & Experimentation** | DoWhy ATE with CI, refutation tests, uplift curves (4 meta-learners), CUPED variance reduction gauge, sequential testing (mSPRT) |
+| **MLOps & Quality** | 3-tab drift timeline (MAPE/KS/PSI), SHAP vs LIME feature importance, fairness by segment, retrain decision flow (Sankey) |
+
+```bash
+# Launch dashboard
+streamlit run app/dashboard/dashboard.py
+```
+
+---
+
 ## Quick Start
 
 ```bash
@@ -202,6 +221,15 @@ GlowCast/
 │   ├── settings.py                    # YAML config loader (@lru_cache)
 │   ├── logging.py                     # structlog setup
 │   ├── seed.py                        # Global seed (42)
+│   ├── dashboard/
+│   │   ├── dashboard.py               # Streamlit entry point (5-page SPA)
+│   │   ├── data.py                    # Standalone data simulator (all KPIs)
+│   │   └── views/                     # Page modules
+│   │       ├── overview.py            # Executive Overview (Sankey, radar, fairness)
+│   │       ├── forecasting.py         # Demand & Forecasting (6 models, CV, ablation)
+│   │       ├── supply_chain.py        # Inventory & Supply Chain (DoS, scrap, anomalies)
+│   │       ├── causal.py              # Causal & Experimentation (DoWhy, uplift, CUPED)
+│   │       └── mlops.py               # MLOps & Quality (drift, SHAP, fairness, retrain)
 │   ├── data/
 │   │   ├── segment_genes.py           # 10 segments, 12 FCs, taxonomy
 │   │   ├── star_schema.py             # 9 Pandera schemas
@@ -287,6 +315,7 @@ ruff check app/ tests/                 # Lint
 | **MLOps** | MLflow, Evidently (drift), Pandera (contracts), structlog |
 | **Explainability** | SHAP, LIME, fairness tests (Kruskal-Wallis, Chi²) |
 | **Data** | Star schema (9 tables), SQL analytics pipelines, SQLite |
+| **Dashboard** | Streamlit, Plotly (Sankey, radar, heatmaps, gauges) |
 | **Infrastructure** | Docker, PyYAML config, pyproject.toml (PEP 621) |
 | **Testing** | pytest, Hypothesis (property-based), ruff, mypy |
 

@@ -69,6 +69,13 @@ logs/
 *.jpeg
 *.gif
 
+# ─── Node.js ─────────────────────────────────────────────
+node_modules/
+
+# ─── Generated Artifacts ─────────────────────────────────
+architecture-diagrams/
+demo/screenshots/
+
 # ─── MLflow / Experiment Tracking ─────────────────────────
 mlruns/
 mlartifacts/
