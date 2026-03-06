@@ -32,6 +32,7 @@ jobs:
 
   data-validation:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: test
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +41,7 @@ jobs:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
       - run: python -m app.data.data_generator --validate-only
+        timeout-minutes: 10
 
   docker:
     runs-on: ubuntu-latest
