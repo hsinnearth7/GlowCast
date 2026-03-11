@@ -146,8 +146,8 @@ class ModelRegistry:
                     self._client.set_model_version_tag(name, mv.version, f"metric.{k}", str(v))
 
             if tags:
-                for k, v in tags.items():
-                    self._client.set_model_version_tag(name, mv.version, k, v)
+                for tag_key, tag_val in tags.items():
+                    self._client.set_model_version_tag(name, mv.version, tag_key, tag_val)
 
             logger.info("Registered model %r version=%s from run=%s", name, mv.version, run_id)
             return str(mv.version)

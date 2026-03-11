@@ -181,8 +181,8 @@ class AuditLogger:
         if not self._buffer:
             return {"total_entries": 0}
 
-        outcomes = {}
-        actions = {}
+        outcomes: dict[str, int] = {}
+        actions: dict[str, int] = {}
         users = set()
         for record in self._buffer:
             outcome = record.get("outcome", "unknown")
