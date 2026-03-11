@@ -342,6 +342,142 @@ MIT
 
 ---
 
+## Enterprise Deployment Infrastructure
+
+GlowCast includes production-grade deployment infrastructure spanning three maturity phases.
+
+### Project Structure (Infrastructure)
+
+```
+├── app/api/                    # FastAPI API layer (NEW)
+│   ├── __init__.py
+│   └── main.py                 # health, metrics, pipelines, forecasts, drift
+├── k8s/                        # Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   ├── api-deployment.yaml     # 2 replicas, FastAPI on :8000
+│   ├── dashboard-deployment.yaml # 1 replica, Streamlit on :8501
+│   ├── api-service.yaml
+│   ├── dashboard-service.yaml
+│   ├── hpa.yaml                # API: 2-8 pods, CPU 70%
+│   ├── ingress.yaml            # / → dashboard, /api → api
+│   ├── postgres.yaml           # PostgreSQL 16, 2Gi PVC
+│   ├── redis.yaml              # Redis 7
+│   └── canary/                 # Istio + Flagger (custom MAPE/drift metrics)
+├── helm/glowcast/              # Helm chart
+│   ├── Chart.yaml
+│   ├── values.yaml             # api/dashboard/postgresql/redis
+│   └── templates/              # 9 templated manifests
+├── serving/                    # BentoML model serving
+│   ├── bentofile.yaml
+│   └── service.py              # forecast / uplift_predict / detect_drift
+├── monitoring/                 # Observability stack
+│   ├── prometheus.yml          # + K8s service discovery
+│   ├── docker-compose.monitoring.yaml
+│   └── grafana/                # 25-panel dashboard
+├── pipelines/                  # Airflow orchestration
+│   ├── dags/
+│   │   ├── glowcast_training.py         # ML training pipeline
+│   │   ├── glowcast_experimentation.py  # CUPED/mSPRT experiments
+│   │   └── glowcast_monitoring.py       # 6-hourly drift detection
+│   └── docker-compose.airflow.yaml
+├── mlflow/                     # Model registry (+ MinIO artifacts)
+│   └── docker-compose.mlflow.yaml
+├── terraform/                  # AWS infrastructure as code
+│   ├── main.tf                 # VPC + EKS + RDS + ElastiCache + S3
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── modules/                # eks / rds / redis / s3
+│   └── environments/           # dev / prod (SOC2 tags)
+├── loadtests/                  # Performance testing
+│   ├── k6_api.js               # 3 scenarios: sustained/ramp/spike
+│   └── slo.yaml                # 8 SLOs including AUUC > 0.70
+└── data_quality/               # Great Expectations
+    ├── great_expectations.yml
+    ├── expectations/            # sales_data / product_data / social_signals
+    ├── checkpoints/
+    └── validate.py             # Lightweight engine (no GX dependency required)
+```
+
+### Phase 1 — Minimum Viable Deployment
+
+| Component | Technology | Details |
+|-----------|-----------|---------|
+| **API Layer** | FastAPI | NEW — 6 endpoints: health, metrics, pipelines, forecasts, drift status |
+| **Container Orchestration** | Kubernetes | API (2 replicas) + Streamlit dashboard (1 replica), health probes |
+| **Helm Chart** | Helm v3 | Parameterized: api, dashboard, postgresql, redis |
+| **Model Serving** | BentoML | 3 endpoints: `forecast` (routing ensemble), `uplift_predict` (X-Learner), `detect_drift` |
+| **Database** | PostgreSQL 16 | StatefulSet with 2Gi persistent volume |
+| **Cache** | Redis 7 | Feature store online serving |
+| **Secrets** | K8s Secrets | API keys, database URLs |
+
+### Phase 2 — Production Ready
+
+| Component | Technology | Details |
+|-----------|-----------|---------|
+| **Model Registry** | MLflow + MinIO | Extends existing mlflow_tracker.py with registry workflow |
+| **Metrics** | Prometheus | 16 custom metrics (`glowcast_*`): forecast, uplift AUUC, drift, data quality, CUPED |
+| **Dashboards** | Grafana | 25 panels: forecast quality, uplift, CUPED variance reduction, drift, pipeline, API |
+| **Canary Deployment** | Istio + Flagger | Custom metric templates for MAPE and drift detection |
+| **Pipeline Orchestration** | Apache Airflow | 3 DAGs: training, experimentation (CUPED/mSPRT), monitoring (6-hourly) |
+
+### Phase 3 — Enterprise Grade
+
+| Component | Technology | Details |
+|-----------|-----------|---------|
+| **Infrastructure as Code** | Terraform | AWS: VPC, EKS, RDS, ElastiCache, S3 (prod with SOC2 tags) |
+| **Access Control** | RBAC Middleware | 3 roles (Viewer/Analyst/Admin), 5 permissions |
+| **Audit Trail** | Audit Logger | NDJSON file + in-memory buffer, structured logging |
+| **Load Testing** | k6 | 3 scenarios (sustained/ramp/spike), P95 < 500ms |
+| **SLO** | YAML definitions | 8 SLOs: availability 99.9%, MAPE < 15%, AUUC > 0.70, data quality > 95% |
+| **Data Quality** | Great Expectations | sales_data (14) + product_data (13) + social_signals (12) expectations |
+
+### Quick Start — Local Infrastructure
+
+```bash
+# Core services (API + dashboard + PostgreSQL + Redis)
+docker compose up -d
+
+# Monitoring (Prometheus + Grafana)
+docker compose -f monitoring/docker-compose.monitoring.yaml up -d
+# → Grafana: http://localhost:3000 (admin/admin)
+
+# MLflow Model Registry
+docker compose -f mlflow/docker-compose.mlflow.yaml up -d
+# → MLflow: http://localhost:5000
+
+# Airflow Pipeline Orchestration
+docker compose -f pipelines/docker-compose.airflow.yaml up -d
+# → Airflow: http://localhost:8080 (admin/admin)
+
+# Kubernetes (local)
+minikube start
+kubectl apply -f k8s/
+# Or with Helm:
+helm install glowcast helm/glowcast/
+
+# Load Testing
+k6 run loadtests/k6_api.js
+
+# Data Quality Validation
+python data_quality/validate.py
+```
+
+### Cloud Deployment (AWS)
+
+```bash
+# Dev environment
+cd terraform/environments/dev
+terraform init && terraform plan && terraform apply
+
+# Prod environment (SOC2 tags, multi-AZ)
+cd terraform/environments/prod
+terraform init && terraform plan && terraform apply
+```
+
+---
+
 <div align="center">
 
 **MAPE 11.8% · CUPED −55% · X-Learner AUUC 0.74 · Shelf-Life FIFO**

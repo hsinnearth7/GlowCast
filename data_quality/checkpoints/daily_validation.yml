@@ -1,0 +1,54 @@
+# Great Expectations checkpoint for daily data quality validation.
+#
+# Runs all three expectation suites (sales, product, social_signals)
+# and reports results to the data docs site.
+#
+# Usage:
+#   great_expectations checkpoint run daily_validation
+#   python data_quality/validate.py
+
+name: daily_validation
+config_version: 1.0
+
+template_name: null
+module_name: great_expectations.checkpoint
+class_name: Checkpoint
+run_name_template: "daily_validation_%Y%m%d_%H%M%S"
+
+expectation_suite_name: null
+
+action_list:
+  - name: store_validation_result
+    action:
+      class_name: StoreValidationResultAction
+
+  - name: store_evaluation_params
+    action:
+      class_name: StoreEvaluationParametersAction
+
+  - name: update_data_docs
+    action:
+      class_name: UpdateDataDocsAction
+
+validations:
+  - batch_request:
+      datasource_name: glowcast_pandas
+      data_connector_name: default_runtime_data_connector
+      data_asset_name: fact_sales
+    expectation_suite_name: glowcast_fact_sales
+
+  - batch_request:
+      datasource_name: glowcast_pandas
+      data_connector_name: default_runtime_data_connector
+      data_asset_name: dim_product
+    expectation_suite_name: glowcast_dim_product
+
+  - batch_request:
+      datasource_name: glowcast_pandas
+      data_connector_name: default_runtime_data_connector
+      data_asset_name: fact_social_signals
+    expectation_suite_name: glowcast_fact_social_signals
+
+evaluation_parameters: {}
+runtime_configuration: {}
+profilers: []

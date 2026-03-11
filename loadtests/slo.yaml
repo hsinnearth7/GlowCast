@@ -1,0 +1,152 @@
+# GlowCast Service Level Objectives (SLOs)
+#
+# Defines measurable quality targets for the platform.
+# Used by load tests, monitoring alerts, and canary analysis.
+
+service: glowcast
+version: "1.0"
+owner: ml-engineering
+
+slos:
+  # -------------------------------------------------------------------------
+  # Availability
+  # -------------------------------------------------------------------------
+  - name: api_availability
+    description: "API endpoints return non-5xx responses"
+    target: 99.9%
+    window: 30d
+    metric:
+      type: availability
+      good: "sum(rate(glowcast_http_requests_total{status!~'5..'}[5m]))"
+      total: "sum(rate(glowcast_http_requests_total[5m]))"
+    alert:
+      burn_rate_1h: 14.4    # 1h window, 14.4x burn rate
+      burn_rate_6h: 6.0     # 6h window, 6x burn rate
+      burn_rate_24h: 3.0    # 24h window, 3x burn rate
+
+  # -------------------------------------------------------------------------
+  # Latency
+  # -------------------------------------------------------------------------
+  - name: api_latency_p95
+    description: "95th percentile API response time under 500ms"
+    target: 99.0%
+    window: 30d
+    metric:
+      type: latency
+      threshold_ms: 500
+      query: "histogram_quantile(0.95, rate(glowcast_http_request_duration_seconds_bucket[5m]))"
+    endpoints:
+      - path: /api/health
+        p95_target_ms: 100
+      - path: /api/forecasts
+        p95_target_ms: 500
+      - path: /api/drift/status
+        p95_target_ms: 500
+      - path: /api/pipelines/run
+        p95_target_ms: 2000
+      - path: /api/pipelines/status
+        p95_target_ms: 200
+
+  - name: api_latency_p99
+    description: "99th percentile API response time under 1000ms"
+    target: 99.0%
+    window: 30d
+    metric:
+      type: latency
+      threshold_ms: 1000
+      query: "histogram_quantile(0.99, rate(glowcast_http_request_duration_seconds_bucket[5m]))"
+
+  # -------------------------------------------------------------------------
+  # Forecast Quality
+  # -------------------------------------------------------------------------
+  - name: forecast_mape
+    description: "Overall routing ensemble MAPE stays below 15%"
+    target: 95.0%
+    window: 7d
+    metric:
+      type: quality
+      query: "glowcast_forecast_mape{segment='overall'}"
+      threshold: 0.15
+      direction: below    # Good when metric is below threshold
+    segments:
+      - name: stable
+        threshold: 0.10
+      - name: seasonal
+        threshold: 0.20
+      - name: cold_start
+        threshold: 0.25
+      - name: promo
+        threshold: 0.30
+
+  # -------------------------------------------------------------------------
+  # Uplift Quality
+  # -------------------------------------------------------------------------
+  - name: uplift_auuc
+    description: "X-Learner AUUC stays above 0.70"
+    target: 95.0%
+    window: 7d
+    metric:
+      type: quality
+      query: "glowcast_uplift_auuc{learner='x_learner'}"
+      threshold: 0.70
+      direction: above    # Good when metric is above threshold
+
+  # -------------------------------------------------------------------------
+  # Data Quality
+  # -------------------------------------------------------------------------
+  - name: data_quality
+    description: "Great Expectations validation score above 95%"
+    target: 99.0%
+    window: 7d
+    metric:
+      type: quality
+      query: "glowcast_data_quality_score"
+      threshold: 0.95
+      direction: above
+
+  # -------------------------------------------------------------------------
+  # Pipeline Reliability
+  # -------------------------------------------------------------------------
+  - name: pipeline_success_rate
+    description: "Training and monitoring pipelines complete successfully"
+    target: 99.0%
+    window: 30d
+    metric:
+      type: availability
+      good: "sum(rate(glowcast_pipeline_runs_total{status='completed'}[1h]))"
+      total: "sum(rate(glowcast_pipeline_runs_total[1h]))"
+
+  # -------------------------------------------------------------------------
+  # Drift Detection
+  # -------------------------------------------------------------------------
+  - name: drift_detection_freshness
+    description: "Drift checks run within expected 6h schedule"
+    target: 99.5%
+    window: 7d
+    metric:
+      type: freshness
+      max_age_hours: 7    # Allow 1h buffer over 6h schedule
+
+# -------------------------------------------------------------------------
+# Error budget policy
+# -------------------------------------------------------------------------
+error_budget_policy:
+  # When error budget is exhausted:
+  - condition: "budget_remaining < 0%"
+    actions:
+      - freeze_deployments
+      - page_oncall
+      - incident_review
+
+  # When error budget is low:
+  - condition: "budget_remaining < 25%"
+    actions:
+      - slow_rollouts
+      - increase_canary_analysis_time
+      - notify_team
+
+  # When error budget is healthy:
+  - condition: "budget_remaining > 50%"
+    actions:
+      - normal_rollouts
+      - allow_experiments

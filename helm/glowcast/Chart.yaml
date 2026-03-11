@@ -1,0 +1,21 @@
+apiVersion: v2
+name: glowcast
+description: >-
+  Beauty supply chain demand sensing & inventory optimization platform.
+  Deploys forecasting API (LightGBM/XGBoost/SARIMAX/Chronos-2),
+  Streamlit dashboard, PostgreSQL, and Redis.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: GlowCast Team
+    email: team@glowcast.example.com
+keywords:
+  - demand-forecasting
+  - supply-chain
+  - beauty
+  - ml
+  - causal-inference
+home: https://github.com/glowcast/glowcast
+sources:
+  - https://github.com/glowcast/glowcast

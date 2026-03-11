@@ -1,0 +1,111 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: glowcast-api
+  namespace: glowcast
+  labels:
+    app.kubernetes.io/name: glowcast
+    app.kubernetes.io/component: api
+spec:
+  # Target deployment
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: glowcast-api
+
+  # Istio virtual service
+  service:
+    port: 80
+    targetPort: 8000
+    gateways:
+      - glowcast-gateway
+    hosts:
+      - glowcast.example.com
+
+  # Canary analysis configuration
+  analysis:
+    # Schedule interval for canary analysis
+    interval: 1m
+
+    # Max number of failed metric checks before rollback
+    threshold: 5
+
+    # Max traffic weight routed to canary
+    maxWeight: 50
+
+    # Traffic weight step size
+    stepWeight: 10
+
+    # Promotion criteria — all metrics must pass
+    metrics:
+      # Request success rate must be >= 99%
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+
+      # P95 latency must be < 500ms
+      - name: request-duration
+        thresholdRange:
+          max: 500
+        interval: 1m
+
+      # Custom: forecast MAPE must be < 15%
+      - name: glowcast-forecast-mape
+        templateRef:
+          name: glowcast-forecast-mape
+          namespace: glowcast
+        thresholdRange:
+          max: 0.15
+        interval: 2m
+
+      # Custom: no drift detected
+      - name: glowcast-drift-check
+        templateRef:
+          name: glowcast-drift-check
+          namespace: glowcast
+        thresholdRange:
+          max: 0
+        interval: 2m
+
+    # Webhooks for notifications
+    webhooks:
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://glowcast-api.glowcast:80/api/health
+        timeout: 30s
+
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester.glowcast/
+        timeout: 60s
+        metadata:
+          cmd: "hey -z 1m -q 10 -c 2 http://glowcast-api-canary.glowcast:80/api/health"
+
+---
+# Custom metric template: Forecast MAPE
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: glowcast-forecast-mape
+  namespace: glowcast
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring:9090
+  query: |
+    avg(glowcast_forecast_mape{segment="overall"})
+
+---
+# Custom metric template: Drift detection
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: glowcast-drift-check
+  namespace: glowcast
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring:9090
+  query: |
+    max(glowcast_drift_detected)

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "glowcast.fullname" . }}-dashboard
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "glowcast.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+spec:
+  replicas: {{ .Values.dashboard.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "glowcast.dashboard.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "glowcast.dashboard.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: dashboard
+          image: "{{ .Values.dashboard.image.repository }}:{{ .Values.dashboard.image.tag }}"
+          imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.dashboard.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "glowcast.configMapName" . }}
+            - secretRef:
+                name: {{ include "glowcast.secretName" . }}
+          env:
+            - name: PYTHONPATH
+              value: /app
+            - name: STREAMLIT_SERVER_PORT
+              value: {{ .Values.dashboard.service.targetPort | quote }}
+            - name: STREAMLIT_SERVER_ADDRESS
+              value: "0.0.0.0"
+            - name: STREAMLIT_SERVER_HEADLESS
+              value: "true"
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.dashboard.livenessProbe.path }}
+              port: {{ .Values.dashboard.livenessProbe.port }}
+            initialDelaySeconds: {{ .Values.dashboard.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.dashboard.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.dashboard.readinessProbe.path }}
+              port: {{ .Values.dashboard.readinessProbe.port }}
+            initialDelaySeconds: {{ .Values.dashboard.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.dashboard.readinessProbe.periodSeconds }}
+          command:
+            {{- toYaml .Values.dashboard.command | nindent 12 }}

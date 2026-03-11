@@ -1,0 +1,34 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: glowcast-api
+  namespace: glowcast
+  labels:
+    app.kubernetes.io/name: glowcast
+    app.kubernetes.io/component: api
+spec:
+  hosts:
+    - glowcast-api
+  http:
+    - route:
+        - destination:
+            host: glowcast-api
+            subset: stable
+          weight: 100
+        - destination:
+            host: glowcast-api
+            subset: canary
+          weight: 0
+      retries:
+        attempts: 3
+        perTryTimeout: 5s
+        retryOn: gateway-error,connect-failure,refused-stream
+      timeout: 30s
+      match:
+        - uri:
+            prefix: /api
+      fault:
+        abort:
+          percentage:
+            value: 0
+          httpStatus: 503

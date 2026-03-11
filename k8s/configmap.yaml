@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glowcast-config
+  namespace: glowcast
+  labels:
+    app.kubernetes.io/name: glowcast
+    app.kubernetes.io/component: config
+data:
+  GLOWCAST_ENV: "production"
+  PYTHONHASHSEED: "42"
+  LOG_LEVEL: "INFO"
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  CORS_ORIGINS: "https://glowcast.example.com"
+  MLFLOW_TRACKING_URI: "http://mlflow:5000"
+  PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"

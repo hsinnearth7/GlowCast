@@ -1,0 +1,589 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Forecast Quality",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.12 },
+              { "color": "red", "value": 0.15 }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 0.3
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "title": "Forecast MAPE (Overall)",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "glowcast_forecast_mape{segment=\"overall\"}",
+          "legendFormat": "Overall MAPE",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "pointSize": 5,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 6, "y": 1 },
+      "id": 2,
+      "title": "MAPE by Segment (Time Series)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "glowcast_forecast_mape",
+          "legendFormat": "{{segment}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "id": 3,
+      "title": "Forecast RMSE by Segment",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "glowcast_forecast_rmse",
+          "legendFormat": "{{segment}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "title": "Uplift & Causal Inference",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.60 },
+              { "color": "green", "value": 0.70 }
+            ]
+          },
+          "unit": "short",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "id": 4,
+      "title": "Uplift AUUC",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "glowcast_uplift_auuc{learner=\"x_learner\"}",
+          "legendFormat": "X-Learner AUUC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "barAlignment": 0
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "id": 5,
+      "title": "AUUC by Learner",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "glowcast_uplift_auuc",
+          "legendFormat": "{{learner}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.40 },
+              { "color": "green", "value": 0.50 }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "id": 6,
+      "title": "CUPED Variance Reduction",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "glowcast_experiment_variance_reduction",
+          "legendFormat": "{{experiment_id}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+      "id": 7,
+      "title": "Experiment Sample Sizes",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "glowcast_experiment_sample_size",
+          "legendFormat": "{{experiment_id}} ({{group}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "Drift Detection",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "green", "text": "No Drift" } }, "type": "value" },
+            { "options": { "1": { "color": "red", "text": "DRIFT" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 15 },
+      "id": 8,
+      "title": "Drift Status (MAPE / KS / PSI)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "glowcast_drift_detected",
+          "legendFormat": "{{drift_type}} — {{segment}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 15 },
+      "id": 9,
+      "title": "KS p-values (Feature Drift)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "glowcast_drift_ks_pvalue",
+          "legendFormat": "{{feature}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.10 },
+              { "color": "red", "value": 0.20 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 15 },
+      "id": 10,
+      "title": "PSI by Segment",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "glowcast_drift_psi",
+          "legendFormat": "{{segment}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 103,
+      "title": "Pipeline & Data Quality",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "barAlignment": 0
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 22 },
+      "id": 11,
+      "title": "Pipeline Duration",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(glowcast_pipeline_duration_seconds_bucket[1h]))",
+          "legendFormat": "P95 {{pipeline_type}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(glowcast_pipeline_duration_seconds_bucket[1h]))",
+          "legendFormat": "P50 {{pipeline_type}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 22 },
+      "id": 12,
+      "title": "Pipeline Runs (Success / Failure)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(glowcast_pipeline_runs_total{status=\"completed\"}[1h])",
+          "legendFormat": "Success ({{pipeline_type}})",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(glowcast_pipeline_runs_total{status=\"failed\"}[1h])",
+          "legendFormat": "Failed ({{pipeline_type}})",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.80 },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 22 },
+      "id": 13,
+      "title": "Data Quality Score",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "glowcast_data_quality_score",
+          "legendFormat": "{{dataset}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "id": 104,
+      "title": "API Performance",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 29 },
+      "id": 14,
+      "title": "Request Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(glowcast_http_requests_total[5m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 29 },
+      "id": 15,
+      "title": "Latency (P50 / P95 / P99)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(glowcast_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(glowcast_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(glowcast_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60
+          }
+        }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 29 },
+      "id": 16,
+      "title": "Errors by Type & Component",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(glowcast_errors_total[5m])",
+          "legendFormat": "{{error_type}} ({{component}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 3, "w": 6, "x": 0, "y": 35 },
+      "id": 17,
+      "title": "HTTP 2xx",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(glowcast_http_requests_total{status=~\"2..\"}[5m]))",
+          "legendFormat": "2xx/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 3, "w": 6, "x": 6, "y": 35 },
+      "id": 18,
+      "title": "HTTP 5xx",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(glowcast_http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx/s",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 3, "w": 6, "x": 12, "y": 35 },
+      "id": 19,
+      "title": "Model Inference Latency (P95)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(glowcast_model_inference_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{model_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 3, "w": 6, "x": 18, "y": 35 },
+      "id": 20,
+      "title": "Model Inference Total",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(glowcast_model_inference_total[5m])) by (model_name)",
+          "legendFormat": "{{model_name}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["glowcast", "ml", "forecasting", "uplift"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GlowCast — ML Platform Monitoring",
+  "uid": "glowcast-main",
+  "version": 1,
+  "weekStart": ""
+}

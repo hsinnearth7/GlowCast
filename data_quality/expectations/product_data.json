@@ -1,0 +1,149 @@
+{
+  "expectation_suite_name": "glowcast_dim_product",
+  "data_asset_type": "Dataset",
+  "meta": {
+    "great_expectations_version": "0.18.0",
+    "description": "Expectations for the Dim_Product table — SKU metadata including concern, texture, shelf life, and pricing.",
+    "owner": "glowcast-data-team"
+  },
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_ordered_list",
+      "kwargs": {
+        "column_list": [
+          "sku_id",
+          "product_name",
+          "concern",
+          "texture",
+          "shelf_life_days",
+          "base_price",
+          "cost",
+          "segment_gene"
+        ]
+      }
+    },
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 50,
+        "max_value": 10000
+      },
+      "meta": {
+        "notes": "Quick mode: 50 SKUs, full mode: 5000 SKUs"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "sku_id"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "sku_id"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "concern"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "texture"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "concern",
+        "value_set": [
+          "Hydrating",
+          "AntiAging",
+          "Brightening",
+          "SunProtection",
+          "Acne"
+        ]
+      },
+      "meta": {
+        "notes": "5 concern categories from segment_genes.py"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "texture",
+        "value_set": [
+          "Lightweight",
+          "Rich"
+        ]
+      },
+      "meta": {
+        "notes": "2 texture categories — switches at 23.5C temperature threshold"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "shelf_life_days",
+        "min_value": 300,
+        "max_value": 1100
+      },
+      "meta": {
+        "notes": "450 days (Brightening/Light) to 910 days (Hydrating/Rich)"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "base_price",
+        "min_value": 1.0,
+        "max_value": 500.0
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "cost",
+        "min_value": 0.5,
+        "max_value": 250.0
+      }
+    },
+    {
+      "expectation_type": "expect_column_pair_values_a_to_be_greater_than_b",
+      "kwargs": {
+        "column_A": "base_price",
+        "column_B": "cost",
+        "or_equal": false
+      },
+      "meta": {
+        "notes": "Price must exceed cost (positive margin)"
+      }
+    },
+    {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "segment_gene",
+        "value_set": [
+          "Hydrating_Lightweight",
+          "Hydrating_Rich",
+          "AntiAging_Lightweight",
+          "AntiAging_Rich",
+          "Brightening_Lightweight",
+          "Brightening_Rich",
+          "SunProtection_Lightweight",
+          "SunProtection_Rich",
+          "Acne_Lightweight",
+          "Acne_Rich"
+        ]
+      },
+      "meta": {
+        "notes": "10 segment genes = 5 concerns x 2 textures"
+      }
+    }
+  ],
+  "ge_cloud_id": null
+}

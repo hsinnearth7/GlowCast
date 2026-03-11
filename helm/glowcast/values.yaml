@@ -1,0 +1,178 @@
+# Default values for the GlowCast Helm chart.
+
+global:
+  namespace: glowcast
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# ---------------------------------------------------------------------------
+# API deployment
+# ---------------------------------------------------------------------------
+api:
+  replicaCount: 2
+  image:
+    repository: glowcast/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  command:
+    - uvicorn
+    - app.api.main:app
+    - --host
+    - "0.0.0.0"
+    - --port
+    - "8000"
+    - --workers
+    - "2"
+  livenessProbe:
+    path: /api/health
+    port: 8000
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    path: /api/health
+    port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# ---------------------------------------------------------------------------
+# Dashboard deployment (Streamlit)
+# ---------------------------------------------------------------------------
+dashboard:
+  replicaCount: 1
+  image:
+    repository: glowcast/dashboard
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8501
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  command:
+    - streamlit
+    - run
+    - app/dashboard/dashboard.py
+    - --server.port
+    - "8501"
+    - --server.address
+    - "0.0.0.0"
+    - --server.headless
+    - "true"
+  livenessProbe:
+    path: /_stcore/health
+    port: 8501
+    initialDelaySeconds: 30
+    periodSeconds: 30
+  readinessProbe:
+    path: /_stcore/health
+    port: 8501
+    initialDelaySeconds: 15
+    periodSeconds: 10
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: glowcast.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: api
+        - path: /
+          pathType: Prefix
+          service: dashboard
+  tls:
+    - secretName: glowcast-tls
+      hosts:
+        - glowcast.example.com
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+config:
+  GLOWCAST_ENV: production
+  PYTHONHASHSEED: "42"
+  LOG_LEVEL: INFO
+  PYTHONUNBUFFERED: "1"
+  CORS_ORIGINS: "https://glowcast.example.com"
+  MLFLOW_TRACKING_URI: "http://mlflow:5000"
+
+# ---------------------------------------------------------------------------
+# Secrets (override via --set or values-secret.yaml)
+# ---------------------------------------------------------------------------
+secrets:
+  API_KEY: "changeme-replace-in-production"
+  DATABASE_URL: "postgresql://glowcast:changeme@postgres:5432/glowcast"
+  REDIS_URL: "redis://redis:6379/0"
+
+# ---------------------------------------------------------------------------
+# PostgreSQL
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  auth:
+    database: glowcast
+    username: glowcast
+    password: changeme
+  primary:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# ---------------------------------------------------------------------------
+# Redis
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+  maxmemory: "128mb"
+  maxmemoryPolicy: allkeys-lru

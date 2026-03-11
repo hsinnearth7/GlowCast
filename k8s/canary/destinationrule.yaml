@@ -1,0 +1,35 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: glowcast-api
+  namespace: glowcast
+  labels:
+    app.kubernetes.io/name: glowcast
+    app.kubernetes.io/component: api
+spec:
+  host: glowcast-api
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        h2UpgradePolicy: DEFAULT
+        maxRequestsPerConnection: 10
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+  subsets:
+    - name: stable
+      labels:
+        app.kubernetes.io/name: glowcast
+        app.kubernetes.io/component: api
+        version: stable
+    - name: canary
+      labels:
+        app.kubernetes.io/name: glowcast
+        app.kubernetes.io/component: api
+        version: canary

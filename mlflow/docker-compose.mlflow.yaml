@@ -1,0 +1,78 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.1
+    container_name: glowcast-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://glowcast:changeme@postgres:5432/mlflow
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://glowcast-mlflow-artifacts/
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minio}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minio123}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://glowcast:changeme@postgres:5432/mlflow
+      --default-artifact-root s3://glowcast-mlflow-artifacts/
+      --host 0.0.0.0
+      --port 5000
+      --serve-artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: glowcast-mlflow-postgres
+    environment:
+      - POSTGRES_DB=mlflow
+      - POSTGRES_USER=glowcast
+      - POSTGRES_PASSWORD=changeme
+    volumes:
+      - mlflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glowcast"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: glowcast-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minio minio123;
+      mc mb --ignore-existing myminio/glowcast-mlflow-artifacts;
+      echo 'Bucket created successfully';
+      "
+
+volumes:
+  mlflow_postgres_data:
+  minio_data:
