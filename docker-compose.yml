@@ -24,7 +24,7 @@ services:
       - PYTHONPATH=/app
       - GLOWCAST_ENV=production
       - API_KEY=${API_KEY:-changeme-dev}
-      - DATABASE_URL=postgresql://glowcast:changeme@postgres:5432/glowcast
+      - DATABASE_URL=postgresql://glowcast:${POSTGRES_PASSWORD:-changeme}@postgres:5432/glowcast
       - REDIS_URL=redis://redis:6379/0
       - MLFLOW_TRACKING_URI=http://mlflow:5000
     command:
@@ -81,7 +81,7 @@ services:
     environment:
       - POSTGRES_DB=glowcast
       - POSTGRES_USER=glowcast
-      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

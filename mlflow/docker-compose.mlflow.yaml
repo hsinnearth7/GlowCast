@@ -5,14 +5,14 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - MLFLOW_BACKEND_STORE_URI=postgresql://glowcast:changeme@postgres:5432/mlflow
+      - MLFLOW_BACKEND_STORE_URI=postgresql://glowcast:${POSTGRES_PASSWORD:-changeme}@postgres:5432/mlflow
       - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://glowcast-mlflow-artifacts/
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minio}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minio123}
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     command: >
       mlflow server
-      --backend-store-uri postgresql://glowcast:changeme@postgres:5432/mlflow
+      --backend-store-uri postgresql://glowcast:${POSTGRES_PASSWORD:-changeme}@postgres:5432/mlflow
       --default-artifact-root s3://glowcast-mlflow-artifacts/
       --host 0.0.0.0
       --port 5000
@@ -34,7 +34,7 @@ services:
     environment:
       - POSTGRES_DB=mlflow
       - POSTGRES_USER=glowcast
-      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
     volumes:
       - mlflow_postgres_data:/var/lib/postgresql/data
     healthcheck:

@@ -131,8 +131,8 @@ config:
 # Secrets (override via --set or values-secret.yaml)
 # ---------------------------------------------------------------------------
 secrets:
-  API_KEY: "changeme-replace-in-production"
-  DATABASE_URL: "postgresql://glowcast:changeme@postgres:5432/glowcast"
+  API_KEY: ""  # Set via --set or values override
+  DATABASE_URL: ""  # Set via --set secrets.DATABASE_URL=...
   REDIS_URL: "redis://redis:6379/0"
 
 # ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ postgresql:
   auth:
     database: glowcast
     username: glowcast
-    password: changeme
+    password: ""  # Set via --set or values override
   primary:
     persistence:
       enabled: true

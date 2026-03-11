@@ -13,7 +13,7 @@ x-airflow-common: &airflow-common
     PYTHONPATH: /opt/airflow/glowcast
     GLOWCAST_ENV: production
     MLFLOW_TRACKING_URI: http://mlflow:5000
-    DATABASE_URL: postgresql://glowcast:changeme@glowcast-postgres:5432/glowcast
+    DATABASE_URL: postgresql://glowcast:${POSTGRES_PASSWORD:-changeme}@glowcast-postgres:5432/glowcast
     REDIS_URL: redis://glowcast-redis:6379/0
   volumes:
     - ./dags:/opt/airflow/dags
