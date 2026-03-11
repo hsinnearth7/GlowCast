@@ -2,7 +2,7 @@ x-airflow-common: &airflow-common
   image: apache/airflow:2.9.0-python3.11
   environment: &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/airflow
     AIRFLOW__CORE__FERNET_KEY: ""
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
@@ -29,7 +29,7 @@ services:
     container_name: glowcast-airflow-postgres
     environment:
       - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_PASSWORD=${AIRFLOW_DB_PASSWORD:-airflow}
       - POSTGRES_DB=airflow
     volumes:
       - airflow_postgres_data:/var/lib/postgresql/data
@@ -53,7 +53,7 @@ services:
           --lastname User \
           --role Admin \
           --email admin@glowcast.example.com \
-          --password admin
+          --password ${AIRFLOW_ADMIN_PASSWORD:-changeme}
     restart: "no"
 
   airflow-webserver:
