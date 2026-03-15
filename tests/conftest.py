@@ -1,4 +1,4 @@
-"""Shared test fixtures for GlowCast test suite."""
+"""Shared test fixtures for GlowCast cost analytics."""
 
 from __future__ import annotations
 
@@ -6,78 +6,75 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.data.data_generator import GlowCastDataGenerator
-from app.seed import set_global_seed
+from app.seed import GLOBAL_SEED
 
 
 @pytest.fixture(scope="session")
-def seed():
-    """Set global seed for all tests."""
-    set_global_seed(42)
-    return 42
+def seed() -> int:
+    return GLOBAL_SEED
 
 
 @pytest.fixture(scope="session")
-def rng():
-    """Provide a seeded random generator."""
-    return np.random.default_rng(42)
+def rng() -> np.random.Generator:
+    return np.random.default_rng(GLOBAL_SEED)
 
 
 @pytest.fixture(scope="session")
-def small_generator(seed):
-    """Create a small data generator for testing (50 SKUs, 90 days)."""
-    gen = GlowCastDataGenerator(n_skus=50, n_days=90, seed=42)
+def small_generator():
+    """Session-scoped small data generator for fast tests."""
+    from app.data.data_generator import CostDataGenerator
+
+    gen = CostDataGenerator(n_skus=50, n_days=90, seed=GLOBAL_SEED)
     gen.generate_all()
     return gen
 
 
 @pytest.fixture(scope="session")
-def small_tables(small_generator):
-    """Return all generated tables from small generator."""
+def small_tables(small_generator) -> dict[str, pd.DataFrame]:
+    """Dict of all generated tables from the small generator."""
     return {
         "dim_product": small_generator.dim_product,
-        "dim_location": small_generator.dim_location,
-        "dim_weather": small_generator.dim_weather,
-        "dim_customer": small_generator.dim_customer,
-        "fact_sales": small_generator.fact_sales,
-        "fact_inventory": small_generator.fact_inventory,
-        "fact_social": small_generator.fact_social,
-        "fact_fulfillment": small_generator.fact_fulfillment,
-        "fact_reviews": small_generator.fact_reviews,
+        "dim_supplier": small_generator.dim_supplier,
+        "dim_plant": small_generator.dim_plant,
+        "fact_cost_transactions": small_generator.fact_cost_transactions,
+        "fact_supplier_quotes": small_generator.fact_supplier_quotes,
+        "fact_cost_reduction_actions": small_generator.fact_cost_reduction_actions,
+        "fact_commodity_prices": small_generator.fact_commodity_prices,
+        "fact_purchase_orders": small_generator.fact_purchase_orders,
+        "fact_quality_events": small_generator.fact_quality_events,
     }
 
 
 @pytest.fixture
-def sample_Y_df(rng):
-    """Create a sample Nixtla-format Y DataFrame."""
-    dates = pd.date_range("2023-01-01", periods=180, freq="D")
-    records = []
-    for uid in [f"SKU_{i}__FC_Phoenix" for i in range(1000, 1005)]:
-        for d in dates:
-            records.append({
-                "unique_id": uid,
-                "ds": d,
-                "y": float(max(0, rng.poisson(10) + 3 * np.sin(d.day_of_year / 365 * 2 * np.pi))),
-            })
-    return pd.DataFrame(records)
+def sample_cost_df(rng) -> pd.DataFrame:
+    """Sample cost transaction data for unit tests."""
+    n = 500
+    dates = pd.date_range("2023-01-01", periods=n, freq="D")
+    return pd.DataFrame({
+        "transaction_id": [f"TXN_{i:06d}" for i in range(n)],
+        "transaction_date": np.tile(dates[:100], 5),
+        "sku_id": np.repeat([f"SKU_{i:04d}" for i in range(1, 6)], 100),
+        "plant_id": rng.choice(["PLT_Shenzhen", "PLT_Munich", "PLT_Detroit"], n),
+        "supplier_id": rng.choice(["SUP_001", "SUP_002", "SUP_003"], n),
+        "raw_material_cost": rng.uniform(5, 30, n).round(2),
+        "labor_cost": rng.uniform(3, 15, n).round(2),
+        "overhead_cost": rng.uniform(2, 10, n).round(2),
+        "logistics_cost": rng.uniform(0.5, 3, n).round(2),
+        "total_unit_cost": rng.uniform(15, 60, n).round(2),
+        "volume": rng.integers(1, 100, n),
+    })
 
 
 @pytest.fixture
-def sample_predictions(sample_Y_df, rng):
-    """Create sample predictions matching Y_df."""
-    preds = sample_Y_df.copy()
-    preds["y_hat"] = preds["y"] + rng.normal(0, 2, len(preds))
-    preds["y_hat"] = preds["y_hat"].clip(lower=0)
-    return preds
-
-
-@pytest.fixture
-def binary_treatment_data(rng):
-    """Create sample data for causal/uplift testing."""
+def binary_treatment_data(rng) -> pd.DataFrame:
+    """Synthetic data for causal / uplift tests (kept from original)."""
     n = 1000
     X = rng.standard_normal((n, 5))
-    treatment = rng.choice([0, 1], size=n, p=[0.8, 0.2])
-    # True effect: features 0 and 1 drive heterogeneous treatment effect
-    true_cate = 0.5 * X[:, 0] + 0.3 * X[:, 1]
-    outcome = X[:, 0] + 0.5 * X[:, 2] + treatment * true_cate + rng.normal(0, 0.5, n)
-    return X, treatment, outcome, true_cate
+    treatment = (rng.random(n) < 0.2).astype(int)
+    tau = 0.5 * X[:, 0] + 0.3 * X[:, 1]
+    y = 2.0 + X[:, 0] + 0.5 * X[:, 1] + treatment * tau + rng.standard_normal(n) * 0.5
+
+    df = pd.DataFrame(X, columns=[f"X{i}" for i in range(5)])
+    df["treatment"] = treatment
+    df["outcome"] = y
+    return df

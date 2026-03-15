@@ -1,12 +1,11 @@
 """GlowCast synthetic data generator engine.
 
-Generates a complete star schema dataset for beauty/skincare supply chain simulation:
-- 5,000 SKUs across 10 concern×texture segments
-- 12 fulfillment centers across 5 countries (US/DE/UK/JP/IN)
-- 3 years of daily demand with Negative Binomial distribution
-- Social signals with viral bursts and T-3 leading indicator
-- Climate-driven seasonality with 23.5°C texture switching
-- FIFO inventory batches with shelf-life constraints
+Generates a complete star schema dataset for cost & commercial analytics:
+- 500 SKUs across 10 category × cost_tier segments
+- 12 manufacturing plants across 7 countries
+- 5 suppliers with distinct cost/quality profiles
+- 3 years of daily cost transactions with commodity price sensitivity
+- Supplier quotes, cost reduction actions, purchase orders, quality events
 
 Usage:
     python -m app.data.data_generator [--validate-only]
@@ -25,42 +24,40 @@ import pandas as pd
 import pandera
 
 from app.data.segment_genes import (
-    BEAUTY_ASPECTS,
-    BRAND_CONCERN_WEIGHTS,
-    BRANDS,
-    CONCERN_BASE_VOL,
-    CONCERN_PHASE,
-    CONCERNS,
+    CATEGORIES,
+    COMMODITIES,
+    COMMODITY_BASE_PRICES,
+    COMMODITY_SEASONAL_PHASE,
+    COMMODITY_VOLATILITY,
+    COST_REDUCTION_ACTIONS,
+    COST_TIERS,
     DIRECTION_PHASE,
-    FC_CLIMATE_PARAMS,
-    FC_DEFINITIONS,
-    FC_WEIGHTS,
-    GLOBAL_SOURCES,
-    PRICE_TIER_PARAMS,
+    PLANT_DEFINITIONS,
+    PLANT_WEIGHTS,
     SEGMENT_GENES,
-    SOURCE_WEIGHTS,
-    TEMPERATURE_SWITCH_POINT,
+    SUPPLIER_PROFILES,
+    SUPPLIERS,
 )
 from app.data.star_schema import (
-    Dim_Customer,
-    Dim_Location,
+    Dim_Plant,
     Dim_Product,
-    Dim_Weather,
-    Fact_Inventory_Batch,
-    Fact_Order_Fulfillment,
-    Fact_Review_Aspects,
-    Fact_Sales,
-    Fact_Social_Signals,
+    Dim_Supplier,
+    Fact_Commodity_Prices,
+    Fact_Cost_Reduction_Actions,
+    Fact_Cost_Transactions,
+    Fact_Purchase_Orders,
+    Fact_Quality_Events,
+    Fact_Supplier_Quotes,
 )
 from app.seed import GLOBAL_SEED
 
 
-class GlowCastDataGenerator:
-    """Generates the complete GlowCast star schema dataset."""
+class CostDataGenerator:
+    """Generates the complete GlowCast cost analytics star schema dataset."""
 
     def __init__(
         self,
-        n_skus: int = 5000,
+        n_skus: int = 500,
         n_days: int = 1095,
         start_date: str = "2022-01-01",
         seed: int = GLOBAL_SEED,
@@ -73,586 +70,529 @@ class GlowCastDataGenerator:
 
         # Generated tables
         self.dim_product: pd.DataFrame | None = None
-        self.dim_location: pd.DataFrame | None = None
-        self.dim_weather: pd.DataFrame | None = None
-        self.dim_customer: pd.DataFrame | None = None
-        self.fact_sales: pd.DataFrame | None = None
-        self.fact_inventory: pd.DataFrame | None = None
-        self.fact_social: pd.DataFrame | None = None
-        self.fact_fulfillment: pd.DataFrame | None = None
-        self.fact_reviews: pd.DataFrame | None = None
+        self.dim_supplier: pd.DataFrame | None = None
+        self.dim_plant: pd.DataFrame | None = None
+        self.fact_cost_transactions: pd.DataFrame | None = None
+        self.fact_supplier_quotes: pd.DataFrame | None = None
+        self.fact_cost_reduction_actions: pd.DataFrame | None = None
+        self.fact_commodity_prices: pd.DataFrame | None = None
+        self.fact_purchase_orders: pd.DataFrame | None = None
+        self.fact_quality_events: pd.DataFrame | None = None
 
     def generate_all(self) -> dict[str, pd.DataFrame]:
         """Generate all star schema tables."""
+        self._generate_dim_supplier()
+        self._generate_dim_plant()
         self._generate_dim_product()
-        self._generate_dim_location()
-        self._generate_dim_weather()
-        self._generate_fact_social()
-        self._generate_fact_sales()
-        self._generate_dim_customer()
-        self._generate_fact_inventory()
-        self._generate_fact_fulfillment()
-        self._generate_fact_reviews()
+        self._generate_fact_commodity_prices()
+        self._generate_fact_cost_transactions()
+        self._generate_fact_supplier_quotes()
+        self._generate_fact_cost_reduction_actions()
+        self._generate_fact_purchase_orders()
+        self._generate_fact_quality_events()
 
         return {
             "dim_product": self.dim_product,
-            "dim_location": self.dim_location,
-            "dim_weather": self.dim_weather,
-            "dim_customer": self.dim_customer,
-            "fact_sales": self.fact_sales,
-            "fact_inventory": self.fact_inventory,
-            "fact_social": self.fact_social,
-            "fact_fulfillment": self.fact_fulfillment,
-            "fact_reviews": self.fact_reviews,
+            "dim_supplier": self.dim_supplier,
+            "dim_plant": self.dim_plant,
+            "fact_cost_transactions": self.fact_cost_transactions,
+            "fact_supplier_quotes": self.fact_supplier_quotes,
+            "fact_cost_reduction_actions": self.fact_cost_reduction_actions,
+            "fact_commodity_prices": self.fact_commodity_prices,
+            "fact_purchase_orders": self.fact_purchase_orders,
+            "fact_quality_events": self.fact_quality_events,
         }
 
+    # ── Dimension tables ─────────────────────────────────────────────────
+
+    def _generate_dim_supplier(self) -> None:
+        """Generate supplier dimension table."""
+        records = []
+        for i, (name, profile) in enumerate(SUPPLIER_PROFILES.items()):
+            records.append({
+                "supplier_id": f"SUP_{i + 1:03d}",
+                "supplier_name": name,
+                "country": profile["country"],
+                "quality_score": profile["quality_score"],
+                "on_time_delivery_pct": profile["on_time_pct"],
+                "lead_time_days": profile["lead_time_days"],
+                "price_premium": profile["price_premium"],
+            })
+        self.dim_supplier = pd.DataFrame(records)
+
+    def _generate_dim_plant(self) -> None:
+        """Generate plant dimension table."""
+        records = []
+        for plant_id, info in PLANT_DEFINITIONS.items():
+            records.append({
+                "plant_id": plant_id,
+                "country": info["country"],
+                "region": info["region"],
+                "lat": info["lat"],
+                "lon": info["lon"],
+                "labor_rate_hourly": info["labor_rate"],
+                "overhead_rate": info["overhead_rate"],
+                "capacity_utilization": info["capacity_util"],
+            })
+        self.dim_plant = pd.DataFrame(records)
+
     def _generate_dim_product(self) -> None:
-        """Generate Dim_Product with proportional segment allocation."""
-        total_base = sum(g["sku_count"] for g in SEGMENT_GENES.values())
+        """Generate product dimension with cost segment assignments."""
         records = []
-        sku_idx = 1000
+        sku_idx = 0
 
-        for (concern, texture), genes in SEGMENT_GENES.items():
-            seg_skus = max(1, round(genes["sku_count"] / total_base * self.n_skus))
+        # Calculate actual SKU count per segment (proportional)
+        total_gene_skus = sum(g["sku_count"] for g in SEGMENT_GENES.values())
+        supplier_ids = [f"SUP_{i + 1:03d}" for i in range(len(SUPPLIERS))]
 
-            # Assign brands with concern-weighted probabilities
-            brand_weights = np.array([BRAND_CONCERN_WEIGHTS[b][concern] for b in BRANDS])
-            brand_weights = brand_weights / brand_weights.sum()
+        for (category, cost_tier), genes in SEGMENT_GENES.items():
+            segment_n = max(1, int(self.n_skus * genes["sku_count"] / total_gene_skus))
+            subcats = genes["subcategories"]
 
-            for _ in range(seg_skus):
-                brand = self.rng.choice(BRANDS, p=brand_weights)
-                subcat = self.rng.choice(genes["subcategories"])
-                tier = self.rng.choice(
-                    ["Mass", "Prestige", "Luxury"], p=[0.40, 0.40, 0.20]
-                )
-                tp = PRICE_TIER_PARAMS[tier]
-                retail_price = round(self.rng.uniform(*tp["range"]), 2)
-                cogs_pct = self.rng.uniform(*tp["cogs_pct"])
-                unit_cost = round(retail_price * cogs_pct, 2)
-                gross_margin = round((retail_price - unit_cost) / retail_price, 4)
-
-                records.append({
-                    "sku_id": f"SKU_{sku_idx}",
-                    "product_name": f"{brand} {subcat}",
-                    "brand": brand,
-                    "concern": concern,
-                    "texture": texture,
-                    "price_tier": tier,
-                    "subcategory": subcat,
-                    "unit_cost": unit_cost,
-                    "retail_price": retail_price,
-                    "gross_margin": gross_margin,
-                    "shelf_life_days": genes["shelf_life_days"],
-                    "price_elasticity": genes["price_elasticity"],
-                    "social_sensitivity": genes["social_sensitivity"],
-                    "seasonal_amplitude": genes["seasonal_amplitude"],
-                    "seasonal_direction": genes["seasonal_direction"],
-                    "base_return_rate": genes["return_rate"],
-                })
+            for j in range(segment_n):
                 sku_idx += 1
+                subcat = subcats[j % len(subcats)]
+                base_cost = genes["base_unit_cost"] * (1 + self.rng.normal(0, 0.15))
+                base_cost = max(0.10, base_cost)
 
-        self.dim_product = pd.DataFrame(records[: self.n_skus])
+                # Target cost is typically 5-15% below current
+                target_cost = base_cost * (1 - self.rng.uniform(0.05, 0.15))
 
-    def _generate_dim_location(self) -> None:
-        """Generate Dim_Location from FC definitions."""
-        records = []
-        for fc_id, fc in FC_DEFINITIONS.items():
-            records.append({
-                "fc_id": fc_id,
-                "country": fc["country"],
-                "region": fc["region"],
-                "lat": fc["lat"],
-                "lon": fc["lon"],
-                "climate_zone": fc["climate_zone"],
-                "storage_capacity": int(self.rng.integers(80000, 200001)),
-                "avg_ship_days": round(self.rng.uniform(1.0, 5.0), 1),
-            })
-        self.dim_location = pd.DataFrame(records)
-
-    def _generate_dim_weather(self) -> None:
-        """Generate daily weather per region using sine-wave climate models."""
-        records = []
-        wid = 0
-        for region, (t_base, t_amp, h_base, h_amp, t_noise, h_noise) in FC_CLIMATE_PARAMS.items():
-            for date in self.dates:
-                doy = date.day_of_year
-                phase = (doy - 100) / 365 * 2 * np.pi
-
-                # Southern hemisphere regions would need phase flip;
-                # all GlowCast FCs are in northern hemisphere
-                temp = t_base + t_amp * np.sin(phase) + self.rng.normal(0, t_noise)
-                humidity = h_base + h_amp * np.sin(phase) + self.rng.normal(0, h_noise)
-                humidity = float(np.clip(humidity, 10, 100))
-                thi = temp - 0.55 * (1 - humidity / 100) * (temp - 14.5)
-
-                month = date.month
-                if month in (3, 4, 5):
-                    season = "Spring"
-                elif month in (6, 7, 8):
-                    season = "Summer"
-                elif month in (9, 10, 11):
-                    season = "Autumn"
-                else:
-                    season = "Winter"
+                commodity = self.rng.choice(COMMODITIES)
+                supplier = self.rng.choice(supplier_ids)
 
                 records.append({
-                    "weather_id": wid,
-                    "date": date,
-                    "region": region,
-                    "temperature_celsius": round(temp, 1),
-                    "humidity_pct": round(humidity, 1),
-                    "temp_humidity_index": round(thi, 1),
-                    "season": season,
+                    "sku_id": f"SKU_{sku_idx:04d}",
+                    "product_name": f"{category}_{subcat}_{sku_idx}",
+                    "category": category,
+                    "cost_tier": cost_tier,
+                    "subcategory": subcat,
+                    "primary_supplier": self.rng.choice(SUPPLIERS),
+                    "base_unit_cost": round(base_cost, 4),
+                    "target_cost": round(target_cost, 4),
+                    "commodity_exposure": commodity,
+                    "commodity_sensitivity": round(float(genes["commodity_sensitivity"]), 4),
+                    "labor_intensity": round(float(genes["labor_intensity"]), 4),
+                    "overhead_allocation": round(float(genes["overhead_allocation"]), 4),
+                    "moq": genes["moq"],
+                    "tariff_exposure": round(float(genes["tariff_exposure"]), 4),
                 })
-                wid += 1
 
-        self.dim_weather = pd.DataFrame(records)
+        self.dim_product = pd.DataFrame(records[:self.n_skus])
 
-    def _generate_fact_social(self) -> None:
-        """Generate social signal time series per concern."""
+    # ── Fact tables ──────────────────────────────────────────────────────
+
+    def _generate_fact_commodity_prices(self) -> None:
+        """Generate daily commodity price index time series."""
         records = []
-        sid = 0
-        for concern in CONCERNS:
-            base_vol = CONCERN_BASE_VOL[concern]
-            phase = CONCERN_PHASE[concern]
+        for commodity in COMMODITIES:
+            base_price = COMMODITY_BASE_PRICES[commodity]
+            volatility = COMMODITY_VOLATILITY[commodity]
+            phase = COMMODITY_SEASONAL_PHASE[commodity]
 
-            for date in self.dates:
-                doy = date.day_of_year
-                seasonal_vol = base_vol * (1 + 0.3 * np.sin(doy / 365 * 2 * np.pi + phase))
-                is_viral = int(self.rng.random() < 0.03)
+            # Random walk with mean reversion + seasonality
+            price = base_price
+            prev_idx = 1.0
+            for i, date in enumerate(self.dates):
+                day_of_year = date.dayofyear
+                seasonal = 0.05 * np.sin(2 * np.pi * day_of_year / 365 + phase)
+                shock = self.rng.normal(0, volatility / np.sqrt(365))
+                mean_reversion = -0.002 * (price - base_price) / base_price
+                price = price * (1 + seasonal / 365 + shock + mean_reversion)
+                price = max(base_price * 0.5, min(base_price * 2.0, price))
 
-                if is_viral:
-                    volume = int(seasonal_vol + self.rng.integers(3000, 10001))
-                    sentiment = float(self.rng.choice([-1, 1]) * self.rng.uniform(0.5, 0.95))
-                else:
-                    volume = max(0, int(seasonal_vol + self.rng.normal(0, base_vol * 0.1)))
-                    sentiment = round(float(self.rng.uniform(-0.2, 0.5)), 3)
+                price_idx = price / base_price
+                pct_change = 0.0 if i == 0 else (price_idx - prev_idx) / prev_idx
+                prev_idx = price_idx
 
-                source = self.rng.choice(GLOBAL_SOURCES, p=SOURCE_WEIGHTS)
-                momentum = volume * sentiment
+                # 30-day volatility (simplified)
+                vol_30d = volatility * np.sqrt(30 / 365)
 
                 records.append({
-                    "signal_id": sid,
-                    "signal_date": date,
-                    "concern": concern,
-                    "source": source,
-                    "mention_volume": volume,
-                    "sentiment_score": round(sentiment, 3),
-                    "is_viral": is_viral,
-                    "net_momentum": round(momentum, 2),
+                    "price_date": date,
+                    "commodity": commodity,
+                    "price_index": round(price_idx, 6),
+                    "pct_change": round(pct_change, 6),
+                    "volatility_30d": round(vol_30d, 6),
                 })
-                sid += 1
 
-        self.fact_social = pd.DataFrame(records)
+        self.fact_commodity_prices = pd.DataFrame(records)
 
-    def _generate_fact_sales(self) -> None:
-        """Generate daily sales with Negative Binomial demand.
-
-        Demand model:
-            base (NegBin from segment lambda)
-            × seasonal (direction-aware sinusoidal)
-            × temperature-texture interaction (23.5°C switch)
-            × social lead (T-3 momentum)
-            × price elasticity (discount effect)
-            + viral bursts
-            × trend (annual growth)
-        """
-        if self.dim_product is None or self.dim_weather is None or self.fact_social is None:
-            raise RuntimeError("Must generate dim_product, dim_weather, fact_social first")
-
-        # Pre-compute social momentum lookup: concern → date → momentum
-        social_lookup: dict[str, dict[pd.Timestamp, float]] = {}
-        for concern in CONCERNS:
-            mask = self.fact_social["concern"] == concern
-            concern_social = self.fact_social[mask].set_index("signal_date")
-            social_lookup[concern] = concern_social["net_momentum"].to_dict()
-
-        # Pre-compute weather lookup: region → date → temp
-        weather_lookup: dict[str, dict[pd.Timestamp, float]] = {}
-        for region in FC_CLIMATE_PARAMS:
-            mask = self.dim_weather["region"] == region
-            rw = self.dim_weather[mask].set_index("date")
-            weather_lookup[region] = rw["temperature_celsius"].to_dict()
-
-        fc_ids = list(FC_DEFINITIONS.keys())
-        fc_weights = np.array([FC_WEIGHTS[fc] for fc in fc_ids])
-
-        # Mark 30% of SKUs as intermittent
-        n_intermittent = int(self.n_skus * 0.30)
-        intermittent_skus = set(
-            self.rng.choice(self.dim_product["sku_id"].values, size=n_intermittent, replace=False)
-        )
-
-        records = []
-        order_idx = 0
-
-        discount_rates = [1.0, 0.85, 0.75, 0.60]
-        discount_probs = [0.65, 0.20, 0.10, 0.05]
-        channels = ["Online", "Retail", "Marketplace"]
-        channel_probs = [0.50, 0.30, 0.20]
-        skin_types = ["Oily_Skin", "Dry_Skin", "Combo_Skin", "Mature_Skin"]
-        skin_probs = [0.30, 0.25, 0.30, 0.15]
-        age_groups = ["18-24", "25-34", "35-44", "45+"]
-        age_probs = [0.25, 0.35, 0.25, 0.15]
-
-        # Sample a subset of dates per SKU to keep row count manageable
-        # Average ~100 sales records per SKU → ~500K rows total
-        for _, prod in self.dim_product.iterrows():
-            sku_id = prod["sku_id"]
-            concern = prod["concern"]
-            texture = prod["texture"]
-            seg_key = (concern, texture)
-            genes = SEGMENT_GENES[seg_key]
-            base_lambda = genes["base_demand_lambda"]
-            amp = genes["seasonal_amplitude"]
-            direction = genes["seasonal_direction"]
-            sensitivity = genes["social_sensitivity"]
-            elasticity = genes["price_elasticity"]
-            trend_pct = genes["trend_annual_pct"]
-            return_rate = genes["return_rate"]
-            retail_price = prod["retail_price"]
-            phase = DIRECTION_PHASE[direction]
-            is_intermittent = sku_id in intermittent_skus
-
-            # For intermittent SKUs, only generate demand on ~40% of days
-            if is_intermittent:
-                active_mask = self.rng.random(self.n_days) < 0.40
-            else:
-                active_mask = np.ones(self.n_days, dtype=bool)
-
-            # Assign to FCs proportionally
-            sku_fcs = self.rng.choice(fc_ids, size=min(4, len(fc_ids)), replace=False, p=fc_weights)
-
-            for fc_id in sku_fcs:
-                region = FC_DEFINITIONS[fc_id]["region"]
-
-                for day_idx, date in enumerate(self.dates):
-                    if not active_mask[day_idx]:
-                        continue
-
-                    # Seasonal component
-                    doy = date.day_of_year
-                    seasonal = 1 + amp * np.sin(doy / 365 * 2 * np.pi + phase)
-
-                    # Temperature-texture interaction
-                    temp = weather_lookup.get(region, {}).get(date, 20.0)
-                    if texture == "Lightweight":
-                        temp_effect = 1.0 + 0.15 * max(0, (temp - TEMPERATURE_SWITCH_POINT) / 10)
-                    else:
-                        temp_effect = 1.0 + 0.15 * max(0, (TEMPERATURE_SWITCH_POINT - temp) / 10)
-
-                    # Social lead (T-3)
-                    lead_date = date - timedelta(days=3)
-                    momentum = social_lookup.get(concern, {}).get(lead_date, 0)
-                    social_effect = 1.0 + sensitivity * np.clip(momentum / max(abs(CONCERN_BASE_VOL[concern] * 0.3), 1e-6), -1, 3)
-
-                    # Trend
-                    year_frac = day_idx / 365
-                    trend = 1.0 + trend_pct * year_frac
-
-                    # Discount / price elasticity
-                    discount = float(self.rng.choice(discount_rates, p=discount_probs))
-                    price_effect = 1.0 + elasticity * (discount - 1.0) if discount < 1.0 else 1.0
-
-                    # Final lambda
-                    lam = max(0.1, base_lambda * seasonal * temp_effect * social_effect * trend * price_effect)
-
-                    # Negative Binomial draw (NegBin parameterized as n, p)
-                    n_param = max(1, int(lam))
-                    p_param = n_param / (n_param + lam) if lam > 0 else 0.5
-                    units = int(self.rng.negative_binomial(n_param, max(0.01, min(0.99, p_param))))
-
-                    if units <= 0:
-                        continue
-
-                    is_return = int(self.rng.random() < return_rate)
-                    revenue = round(units * retail_price * discount * (1 - is_return), 2)
-
-                    records.append({
-                        "order_id": f"ORD_{order_idx:08d}",
-                        "order_date": date,
-                        "sku_id": sku_id,
-                        "fc_id": fc_id,
-                        "customer_id": f"CUST_{self.rng.integers(10000, 99999):05d}",
-                        "units_sold": units,
-                        "discount_rate": discount,
-                        "revenue": revenue,
-                        "is_return": is_return,
-                        "channel": self.rng.choice(channels, p=channel_probs),
-                        "skin_type": self.rng.choice(skin_types, p=skin_probs),
-                        "age_group": self.rng.choice(age_groups, p=age_probs),
-                    })
-                    order_idx += 1
-
-        self.fact_sales = pd.DataFrame(records)
-
-    def _generate_dim_customer(self) -> None:
-        """Generate Dim_Customer from unique customer IDs in sales."""
-        if self.fact_sales is None:
-            raise RuntimeError("Must generate fact_sales first")
-
-        unique_customers = self.fact_sales["customer_id"].unique()
-        records = []
-        for cid in unique_customers:
-            cust_sales = self.fact_sales[self.fact_sales["customer_id"] == cid]
-            first_row = cust_sales.iloc[0]
-            records.append({
-                "customer_id": cid,
-                "age_group": first_row["age_group"],
-                "skin_type": first_row["skin_type"],
-                "region": FC_DEFINITIONS[first_row["fc_id"]]["region"],
-                "acquisition_channel": first_row["channel"],
-                "first_purchase_date": cust_sales["order_date"].min(),
-            })
-
-        self.dim_customer = pd.DataFrame(records)
-
-    def _generate_fact_inventory(self) -> None:
-        """Generate FIFO inventory batches (monthly snapshots)."""
+    def _generate_fact_cost_transactions(self) -> None:
+        """Generate daily cost transaction records."""
         if self.dim_product is None:
-            raise RuntimeError("Must generate dim_product first")
+            self._generate_dim_product()
+
+        plant_ids = list(PLANT_DEFINITIONS.keys())
+        plant_weights = [PLANT_WEIGHTS[p] for p in plant_ids]
+        supplier_ids = [f"SUP_{i + 1:03d}" for i in range(len(SUPPLIERS))]
 
         records = []
-        snapshot_dates = pd.date_range(self.start_date, periods=self.n_days // 30, freq="ME")
-        fc_ids = list(FC_DEFINITIONS.keys())
+        txn_idx = 0
 
-        for snap_date in snapshot_dates:
-            # Sample a subset of SKUs per snapshot
-            sample_size = min(200, len(self.dim_product))
-            sampled_skus = self.rng.choice(
-                self.dim_product["sku_id"].values, size=sample_size, replace=False
+        # Sample a subset of SKUs per day (not all SKUs transact daily)
+        n_daily_txns = max(5, self.n_skus // 10)
+
+        for date in self.dates:
+            day_of_year = date.dayofyear
+            sku_sample = self.dim_product.sample(
+                n=min(n_daily_txns, len(self.dim_product)),
+                random_state=int(self.rng.integers(0, 2**31)),
             )
 
-            for sku_id in sampled_skus:
-                prod = self.dim_product[self.dim_product["sku_id"] == sku_id].iloc[0]
-                shelf_life = int(prod["shelf_life_days"])
+            for _, product in sku_sample.iterrows():
+                txn_idx += 1
+                base_cost = float(product["base_unit_cost"])
+                commodity_sens = float(product["commodity_sensitivity"])
+                labor_int = float(product["labor_intensity"])
+                overhead_alloc = float(product["overhead_allocation"])
 
-                for fc_id in self.rng.choice(fc_ids, size=self.rng.integers(1, 4), replace=False):
-                    n_batches = int(self.rng.integers(2, 7))
-                    for b in range(n_batches):
-                        days_ago = int(self.rng.integers(30, min(700, shelf_life)))
-                        mfg_date = snap_date - timedelta(days=days_ago)
-                        expiry_date = mfg_date + timedelta(days=shelf_life)
+                # Commodity price effect
+                commodity_noise = self.rng.normal(0, 0.03)
+                seasonal_effect = 0.05 * np.sin(2 * np.pi * day_of_year / 365)
 
-                        records.append({
-                            "snapshot_date": snap_date,
-                            "fc_id": fc_id,
-                            "sku_id": sku_id,
-                            "batch_id": f"B-{mfg_date.strftime('%Y%m')}-{b:02d}",
-                            "manufacturing_date": mfg_date,
-                            "expiry_date": expiry_date,
-                            "units_on_hand": int(self.rng.integers(20, 801)),
-                        })
+                # Cost components
+                raw_material = base_cost * commodity_sens * (1 + commodity_noise + seasonal_effect * commodity_sens)
+                labor = base_cost * labor_int * (1 + self.rng.normal(0, 0.02))
+                overhead = base_cost * overhead_alloc * (1 + self.rng.normal(0, 0.01))
+                logistics = base_cost * 0.05 * (1 + self.rng.normal(0, 0.05))
 
-        self.fact_inventory = pd.DataFrame(records)
+                total = max(0.01, raw_material + labor + overhead + logistics)
+                volume = max(1, int(self.rng.negative_binomial(5, 0.3)))
 
-    def _generate_fact_fulfillment(self) -> None:
-        """Generate order fulfillment records with cross-zone tracking."""
-        if self.fact_sales is None:
-            raise RuntimeError("Must generate fact_sales first")
-
-        records = []
-        fc_ids = list(FC_DEFINITIONS.keys())
-
-        # Sample a subset of orders for fulfillment tracking
-        sample_size = min(100000, len(self.fact_sales))
-        sampled = self.fact_sales.sample(n=sample_size, random_state=GLOBAL_SEED)
-
-        for idx, (_, row) in enumerate(sampled.iterrows()):
-            order_fc = row["fc_id"]
-            customer_region = FC_DEFINITIONS[order_fc]["region"]
-
-            # 85% local fulfillment, 15% cross-zone
-            if self.rng.random() < 0.85:
-                fulfilled_fc = order_fc
-                ftype = "Local_Fulfillment"
-                ship_cost = round(self.rng.uniform(3, 12), 2)
-                delivery = int(self.rng.integers(1, 4))
-            else:
-                other_fcs = [f for f in fc_ids if f != order_fc]
-                fulfilled_fc = self.rng.choice(other_fcs)
-                ftype = "Cross_Zone_Fulfillment"
-                ship_cost = round(self.rng.uniform(15, 65), 2)
-                delivery = int(self.rng.integers(3, 10))
-
-            records.append({
-                "fulfillment_id": f"FUL_{idx:08d}",
-                "order_id": row["order_id"],
-                "sku_id": row["sku_id"],
-                "customer_region": customer_region,
-                "fulfilled_from_fc": fulfilled_fc,
-                "units_sold": row["units_sold"],
-                "fulfillment_type": ftype,
-                "shipping_cost": ship_cost,
-                "delivery_days": delivery,
-            })
-
-        self.fact_fulfillment = pd.DataFrame(records)
-
-    def _generate_fact_reviews(self) -> None:
-        """Generate review aspect analysis records."""
-        if self.fact_sales is None:
-            raise RuntimeError("Must generate fact_sales first")
-
-        records = []
-        aspects = list(BEAUTY_ASPECTS.keys())
-
-        # ~5% of orders generate reviews
-        review_mask = self.rng.random(len(self.fact_sales)) < 0.05
-        reviewed_orders = self.fact_sales[review_mask]
-
-        for idx, (_, row) in enumerate(reviewed_orders.iterrows()):
-            n_aspects = int(self.rng.integers(1, 4))
-            chosen_aspects = self.rng.choice(aspects, size=n_aspects, replace=False)
-            star = int(self.rng.choice([1, 2, 3, 4, 5], p=[0.05, 0.08, 0.15, 0.32, 0.40]))
-
-            for aspect in chosen_aspects:
-                # Sentiment correlates with star rating
-                base_sent = (star - 3) / 2
-                sentiment = float(np.clip(base_sent + self.rng.normal(0, 0.2), -1, 1))
+                plant = self.rng.choice(plant_ids, p=plant_weights)
+                supplier = self.rng.choice(supplier_ids)
 
                 records.append({
-                    "review_id": f"REV_{idx:06d}_{aspect}",
-                    "sku_id": row["sku_id"],
-                    "review_date": row["order_date"] + timedelta(days=int(self.rng.integers(1, 30))),
-                    "star_rating": star,
-                    "aspect": aspect,
-                    "aspect_sentiment": round(sentiment, 3),
+                    "transaction_id": f"TXN_{txn_idx:08d}",
+                    "transaction_date": date,
+                    "sku_id": product["sku_id"],
+                    "plant_id": plant,
+                    "supplier_id": supplier,
+                    "raw_material_cost": round(max(0, raw_material), 4),
+                    "labor_cost": round(max(0, labor), 4),
+                    "overhead_cost": round(max(0, overhead), 4),
+                    "logistics_cost": round(max(0, logistics), 4),
+                    "total_unit_cost": round(total, 4),
+                    "volume": volume,
                 })
 
-        self.fact_reviews = pd.DataFrame(records)
+        self.fact_cost_transactions = pd.DataFrame(records)
+
+    def _generate_fact_supplier_quotes(self) -> None:
+        """Generate supplier quote data (quotes arrive periodically)."""
+        if self.dim_product is None:
+            self._generate_dim_product()
+
+        supplier_ids = [f"SUP_{i + 1:03d}" for i in range(len(SUPPLIERS))]
+        supplier_premiums = {
+            f"SUP_{i + 1:03d}": profile["price_premium"]
+            for i, (_, profile) in enumerate(SUPPLIER_PROFILES.items())
+        }
+
+        records = []
+        quote_idx = 0
+
+        # Quotes come quarterly for each SKU from 2-3 suppliers
+        quarter_dates = pd.date_range(self.start_date, periods=self.n_days // 90, freq="QS")
+
+        for date in quarter_dates:
+            sku_sample = self.dim_product.sample(
+                n=min(self.n_skus // 2, len(self.dim_product)),
+                random_state=int(self.rng.integers(0, 2**31)),
+            )
+            for _, product in sku_sample.iterrows():
+                n_quotes = self.rng.integers(2, 4)
+                quoting_suppliers = self.rng.choice(supplier_ids, size=n_quotes, replace=False)
+
+                for sup_id in quoting_suppliers:
+                    quote_idx += 1
+                    base = float(product["base_unit_cost"])
+                    premium = supplier_premiums.get(sup_id, 0.0)
+                    noise = self.rng.normal(0, 0.05)
+                    quoted_price = base * (1 + premium + noise)
+
+                    sup_profile_idx = int(sup_id.split("_")[1]) - 1
+                    sup_name = SUPPLIERS[sup_profile_idx]
+                    lead_time = SUPPLIER_PROFILES[sup_name]["lead_time_days"] + self.rng.integers(-2, 3)
+
+                    records.append({
+                        "quote_id": f"QUO_{quote_idx:06d}",
+                        "quote_date": date + timedelta(days=int(self.rng.integers(0, 15))),
+                        "supplier_id": sup_id,
+                        "sku_id": product["sku_id"],
+                        "quoted_price": round(max(0.01, quoted_price), 4),
+                        "lead_time_days": max(1, lead_time),
+                        "moq": int(product["moq"]),
+                        "valid_until": date + timedelta(days=90),
+                    })
+
+        self.fact_supplier_quotes = pd.DataFrame(records)
+
+    def _generate_fact_cost_reduction_actions(self) -> None:
+        """Generate historical cost reduction action records."""
+        if self.dim_product is None:
+            self._generate_dim_product()
+
+        records = []
+        action_idx = 0
+
+        # Generate ~2-5 actions per quarter
+        quarter_dates = pd.date_range(self.start_date, periods=self.n_days // 90, freq="QS")
+
+        for date in quarter_dates:
+            n_actions = self.rng.integers(2, 6)
+            sku_sample = self.dim_product.sample(
+                n=min(n_actions, len(self.dim_product)),
+                random_state=int(self.rng.integers(0, 2**31)),
+            )
+
+            for _, product in sku_sample.iterrows():
+                action_idx += 1
+                action_type = self.rng.choice(COST_REDUCTION_ACTIONS)
+                projected = self.rng.uniform(0.02, 0.15)
+
+                # Status based on age
+                days_ago = (self.dates[-1] - date).days
+                if days_ago > 365:
+                    status = self.rng.choice(["completed", "cancelled"], p=[0.75, 0.25])
+                elif days_ago > 180:
+                    status = self.rng.choice(["completed", "in_progress", "cancelled"], p=[0.5, 0.3, 0.2])
+                else:
+                    status = self.rng.choice(["proposed", "approved", "in_progress"], p=[0.3, 0.4, 0.3])
+
+                actual_savings = None
+                if status == "completed":
+                    # Actual savings = projected * realization_rate + noise
+                    realization = self.rng.uniform(0.5, 1.2)
+                    actual_savings = round(projected * realization, 4)
+
+                records.append({
+                    "action_id": f"CRA_{action_idx:05d}",
+                    "action_date": date + timedelta(days=int(self.rng.integers(0, 30))),
+                    "sku_id": product["sku_id"],
+                    "action_type": action_type,
+                    "projected_savings_pct": round(projected, 4),
+                    "actual_savings_pct": actual_savings,
+                    "status": status,
+                })
+
+        self.fact_cost_reduction_actions = pd.DataFrame(records)
+
+    def _generate_fact_purchase_orders(self) -> None:
+        """Generate purchase order records."""
+        if self.dim_product is None:
+            self._generate_dim_product()
+
+        supplier_ids = [f"SUP_{i + 1:03d}" for i in range(len(SUPPLIERS))]
+        plant_ids = list(PLANT_DEFINITIONS.keys())
+        plant_weights = [PLANT_WEIGHTS[p] for p in plant_ids]
+
+        records = []
+        po_idx = 0
+
+        # Weekly POs for a subset of SKUs
+        weekly_dates = pd.date_range(self.start_date, periods=self.n_days // 7, freq="W")
+
+        for date in weekly_dates:
+            n_orders = max(3, self.n_skus // 20)
+            sku_sample = self.dim_product.sample(
+                n=min(n_orders, len(self.dim_product)),
+                random_state=int(self.rng.integers(0, 2**31)),
+            )
+
+            for _, product in sku_sample.iterrows():
+                po_idx += 1
+                base = float(product["base_unit_cost"])
+                noise = self.rng.normal(0, 0.03)
+                unit_price = max(0.01, base * (1 + noise))
+                qty = max(1, int(self.rng.negative_binomial(3, 0.2)))
+                total = unit_price * qty
+
+                supplier = self.rng.choice(supplier_ids)
+                plant = self.rng.choice(plant_ids, p=plant_weights)
+
+                # Delivery status
+                sup_profile_idx = int(supplier.split("_")[1]) - 1
+                sup_name = SUPPLIERS[sup_profile_idx]
+                on_time_pct = SUPPLIER_PROFILES[sup_name]["on_time_pct"]
+                expected_days = SUPPLIER_PROFILES[sup_name]["lead_time_days"]
+
+                is_delivered = self.rng.random() < 0.85
+                is_on_time = self.rng.random() < on_time_pct
+
+                if is_delivered:
+                    if is_on_time:
+                        status = "delivered"
+                        actual_days = expected_days + self.rng.integers(-1, 2)
+                    else:
+                        status = "late"
+                        actual_days = expected_days + self.rng.integers(3, 15)
+                else:
+                    status = self.rng.choice(["pending", "shipped"])
+                    actual_days = None
+
+                records.append({
+                    "po_id": f"PO_{po_idx:07d}",
+                    "order_date": date,
+                    "sku_id": product["sku_id"],
+                    "supplier_id": supplier,
+                    "plant_id": plant,
+                    "unit_price": round(unit_price, 4),
+                    "quantity": qty,
+                    "total_amount": round(total, 4),
+                    "delivery_status": status,
+                    "actual_delivery_days": actual_days if actual_days is not None else 0,
+                })
+
+        self.fact_purchase_orders = pd.DataFrame(records)
+
+    def _generate_fact_quality_events(self) -> None:
+        """Generate quality inspection event records."""
+        if self.dim_product is None:
+            self._generate_dim_product()
+
+        supplier_ids = [f"SUP_{i + 1:03d}" for i in range(len(SUPPLIERS))]
+        plant_ids = list(PLANT_DEFINITIONS.keys())
+        plant_weights = [PLANT_WEIGHTS[p] for p in plant_ids]
+
+        records = []
+        event_idx = 0
+
+        # Monthly quality inspections
+        monthly_dates = pd.date_range(self.start_date, periods=self.n_days // 30, freq="MS")
+
+        for date in monthly_dates:
+            n_inspections = max(3, self.n_skus // 15)
+            sku_sample = self.dim_product.sample(
+                n=min(n_inspections, len(self.dim_product)),
+                random_state=int(self.rng.integers(0, 2**31)),
+            )
+
+            for _, product in sku_sample.iterrows():
+                event_idx += 1
+                batch_size = max(10, int(self.rng.negative_binomial(5, 0.3) * 10))
+
+                # Base defect rate from segment genes
+                category = product["category"]
+                cost_tier = product["cost_tier"]
+                genes = SEGMENT_GENES.get((category, cost_tier), {})
+                base_defect = genes.get("quality_rejection_rate", 0.02)
+
+                defect_rate = max(0, base_defect + self.rng.normal(0, base_defect * 0.5))
+                defects = int(batch_size * defect_rate)
+
+                # Disposition based on defect severity
+                if defect_rate < 0.01:
+                    disposition = "accepted"
+                elif defect_rate < 0.03:
+                    disposition = self.rng.choice(["accepted", "rework"], p=[0.6, 0.4])
+                elif defect_rate < 0.08:
+                    disposition = self.rng.choice(["rework", "scrap"], p=[0.5, 0.5])
+                else:
+                    disposition = self.rng.choice(["scrap", "return_to_supplier"], p=[0.4, 0.6])
+
+                supplier = self.rng.choice(supplier_ids)
+                plant = self.rng.choice(plant_ids, p=plant_weights)
+
+                records.append({
+                    "event_id": f"QE_{event_idx:06d}",
+                    "event_date": date + timedelta(days=int(self.rng.integers(0, 28))),
+                    "sku_id": product["sku_id"],
+                    "supplier_id": supplier,
+                    "plant_id": plant,
+                    "defect_rate": round(defect_rate, 6),
+                    "batch_size": batch_size,
+                    "defects_found": defects,
+                    "disposition": disposition,
+                })
+
+        self.fact_quality_events = pd.DataFrame(records)
+
+    # ── Validation ───────────────────────────────────────────────────────
 
     def validate_all(self) -> dict[str, bool]:
         """Validate all tables against Pandera schemas."""
-        schemas = {
+        schema_map = {
             "dim_product": (self.dim_product, Dim_Product),
-            "dim_location": (self.dim_location, Dim_Location),
-            "dim_weather": (self.dim_weather, Dim_Weather),
-            "dim_customer": (self.dim_customer, Dim_Customer),
-            "fact_sales": (self.fact_sales, Fact_Sales),
-            "fact_inventory": (self.fact_inventory, Fact_Inventory_Batch),
-            "fact_social": (self.fact_social, Fact_Social_Signals),
-            "fact_fulfillment": (self.fact_fulfillment, Fact_Order_Fulfillment),
-            "fact_reviews": (self.fact_reviews, Fact_Review_Aspects),
+            "dim_supplier": (self.dim_supplier, Dim_Supplier),
+            "dim_plant": (self.dim_plant, Dim_Plant),
+            "fact_cost_transactions": (self.fact_cost_transactions, Fact_Cost_Transactions),
+            "fact_supplier_quotes": (self.fact_supplier_quotes, Fact_Supplier_Quotes),
+            "fact_cost_reduction_actions": (self.fact_cost_reduction_actions, Fact_Cost_Reduction_Actions),
+            "fact_commodity_prices": (self.fact_commodity_prices, Fact_Commodity_Prices),
+            "fact_purchase_orders": (self.fact_purchase_orders, Fact_Purchase_Orders),
+            "fact_quality_events": (self.fact_quality_events, Fact_Quality_Events),
         }
 
         results = {}
-        for name, (df, schema) in schemas.items():
+        for name, (df, schema) in schema_map.items():
             if df is None:
                 results[name] = False
                 continue
             try:
-                schema.validate(df)
+                schema.validate(df, lazy=True)
                 results[name] = True
-            except pandera.errors.SchemaError as e:
-                print(f"FAIL {name}: {e}")
+            except pandera.errors.SchemaErrors as exc:
+                print(f"  ✗ {name}: {len(exc.failure_cases)} failures")
                 results[name] = False
 
         return results
 
-    def to_nixtla_format(self) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Convert to Nixtla (unique_id, ds, y) format + hierarchy S_df.
-
-        Returns:
-            Y_df: DataFrame with columns [unique_id, ds, y]
-            S_df: Hierarchy summing matrix
-        """
-        if self.fact_sales is None or self.dim_product is None:
-            raise RuntimeError("Must generate data first")
-
-        # Aggregate daily sales per SKU×FC
-        agg = (
-            self.fact_sales.groupby(["sku_id", "fc_id", "order_date"])["units_sold"]
-            .sum()
-            .reset_index()
-        )
-        agg["unique_id"] = agg["sku_id"] + "__" + agg["fc_id"]
-        Y_df = agg.rename(columns={"order_date": "ds", "units_sold": "y"})[["unique_id", "ds", "y"]]
-
-        # Build hierarchy: National → Country → FC → SKU
-        hierarchy_records = []
-        for uid in Y_df["unique_id"].unique():
-            sku_id, fc_id = uid.split("__")
-            country = FC_DEFINITIONS[fc_id]["country"]
-            hierarchy_records.append({
-                "unique_id": uid,
-                "sku_id": sku_id,
-                "fc_id": fc_id,
-                "country": country,
-                "national": "Total",
-            })
-
-        S_df = pd.DataFrame(hierarchy_records).set_index("unique_id")
-
-        return Y_df, S_df
-
     def compute_data_hash(self) -> str:
-        """Compute SHA-256 hash of all generated tables for reproducibility."""
+        """Compute SHA-256 hash of all generated data for reproducibility."""
         hasher = hashlib.sha256()
         tables = [
-            self.dim_product, self.dim_location, self.dim_weather,
-            self.dim_customer, self.fact_sales, self.fact_inventory,
-            self.fact_social, self.fact_fulfillment, self.fact_reviews,
+            self.dim_product, self.dim_supplier, self.dim_plant,
+            self.fact_cost_transactions, self.fact_supplier_quotes,
+            self.fact_cost_reduction_actions, self.fact_commodity_prices,
+            self.fact_purchase_orders, self.fact_quality_events,
         ]
         for df in tables:
             if df is not None:
                 hasher.update(pd.util.hash_pandas_object(df).values.tobytes())
-
         return hasher.hexdigest()
 
     def summary(self) -> dict[str, Any]:
         """Return summary statistics of generated data."""
-        tables = {
+        tables = self.generate_all() if self.dim_product is None else {
             "dim_product": self.dim_product,
-            "dim_location": self.dim_location,
-            "dim_weather": self.dim_weather,
-            "dim_customer": self.dim_customer,
-            "fact_sales": self.fact_sales,
-            "fact_inventory": self.fact_inventory,
-            "fact_social": self.fact_social,
-            "fact_fulfillment": self.fact_fulfillment,
-            "fact_reviews": self.fact_reviews,
+            "dim_supplier": self.dim_supplier,
+            "dim_plant": self.dim_plant,
+            "fact_cost_transactions": self.fact_cost_transactions,
+            "fact_supplier_quotes": self.fact_supplier_quotes,
+            "fact_cost_reduction_actions": self.fact_cost_reduction_actions,
+            "fact_commodity_prices": self.fact_commodity_prices,
+            "fact_purchase_orders": self.fact_purchase_orders,
+            "fact_quality_events": self.fact_quality_events,
         }
-        return {
-            name: len(df) if df is not None else 0
-            for name, df in tables.items()
-        }
+        return {name: len(df) if df is not None else 0 for name, df in tables.items()}
 
 
-def main():
-    parser = argparse.ArgumentParser(description="GlowCast Data Generator")
-    parser.add_argument("--validate-only", action="store_true", help="Generate and validate only (no file output)")
-    parser.add_argument("--n-skus", type=int, default=200, help="Number of SKUs (default 200 for quick run)")
-    parser.add_argument("--n-days", type=int, default=730, help="Number of days (default 730)")
+# ── CLI entry point ──────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="GlowCast Cost Data Generator")
+    parser.add_argument("--n-skus", type=int, default=500)
+    parser.add_argument("--n-days", type=int, default=1095)
+    parser.add_argument("--validate-only", action="store_true")
     args = parser.parse_args()
 
-    print("GlowCast Data Generator")
-    print("=" * 60)
+    gen = CostDataGenerator(n_skus=args.n_skus, n_days=args.n_days)
 
-    gen = GlowCastDataGenerator(n_skus=args.n_skus, n_days=args.n_days)
+    if args.validate_only:
+        gen.generate_all()
+        results = gen.validate_all()
+        all_ok = all(results.values())
+        for name, ok in results.items():
+            print(f"  {'✓' if ok else '✗'} {name}")
+        sys.exit(0 if all_ok else 1)
 
-    print("Generating all tables...")
-    gen.generate_all()
-
-    summary = gen.summary()
-    for table, count in summary.items():
-        print(f"  {table}: {count:,} rows")
-
-    print(f"\nData hash: {gen.compute_data_hash()[:16]}...")
-
-    print("\nValidating schemas...")
-    results = gen.validate_all()
-    all_pass = all(results.values())
-
-    for table, passed in results.items():
-        status = "PASS" if passed else "FAIL"
-        print(f"  {table}: {status}")
-
-    if all_pass:
-        print("\nAll validations passed!")
-    else:
-        print("\nSome validations failed!")
-        sys.exit(1)
+    tables = gen.generate_all()
+    print(f"Generated {len(tables)} tables:")
+    for name, df in tables.items():
+        print(f"  {name}: {len(df):,} rows × {len(df.columns)} cols")
+    print(f"Data hash: {gen.compute_data_hash()[:12]}")
 
 
 if __name__ == "__main__":

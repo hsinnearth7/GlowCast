@@ -19,32 +19,32 @@ production feature platforms (e.g. Feast, Tecton):
 
 Feature Groups
 --------------
-demand_features
+cost_features
     Lag 1/7/14/28 days, rolling mean/std over 7/28 days, day-of-week,
     month — all shifted by 1 day to prevent leakage.
 
-social_features
-    ``social_momentum_t3`` — net social momentum lagged 3 days to
+commodity_features
+    ``social_momentum_t3`` — commodity price momentum lagged 3 days to
     reflect the empirically observed T-3 leading indicator in the
     GlowCast synthetic data generator.
 
 climate_features
     ``temperature``, ``humidity`` — daily weather covariates joined by
-    (unique_id, ds) after extracting the fulfillment-centre region.
+    (unique_id, ds) after extracting the plant region.
 
 inventory_features
     ``days_to_expiry`` — days remaining until nearest batch expiry,
-    computed from Fact_Inventory_Batch when provided.
+    computed from Fact_Purchase_Orders when provided.
 
 Usage
 -----
     fs = FeatureStore()
-    features = fs.materialize_offline(Y_df, X_social=social_df, X_climate=climate_df)
+    features = fs.materialize_offline(Y_df, X_commodity=commodity_df, X_climate=climate_df)
     train_df  = fs.get_training_features(start_date="2023-01-01")
 
     # Serving path
-    fs.update_online("SKU_0001__FC_US_EAST", {"lag_1": 42.0, ...})
-    row = fs.get_online_features("SKU_0001__FC_US_EAST")
+    fs.update_online("SKU_0001__PLANT_SZ", {"lag_1": 42.0, ...})
+    row = fs.get_online_features("SKU_0001__PLANT_SZ")
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ _DEFAULT_CONFIG: dict[str, Any] = {
 
 
 class FeatureStore:
-    """Dual-mode feature store for GlowCast demand forecasting.
+    """Dual-mode feature store for GlowCast cost analytics.
 
     Parameters
     ----------
@@ -126,18 +126,18 @@ class FeatureStore:
             Nixtla-format demand DataFrame with columns
             ``[unique_id, ds, y]``.
         X_social:
-            Optional social signals DataFrame.  Expected columns:
+            Optional commodity momentum DataFrame.  Expected columns:
             ``[ds, net_momentum]``.  If the DataFrame contains a
-            ``concern`` column it will be ignored (momentum is already
-            aggregated per signal date in Fact_Social_Signals).
+            ``commodity`` column it will be ignored (momentum is already
+            aggregated per signal date in Fact_Commodity_Prices).
         X_climate:
             Optional climate DataFrame.  Expected columns:
             ``[ds, region, temperature_celsius, humidity_pct]``.  Joined
             to Y_df by extracting the region from ``unique_id`` (format
             ``SKU_XXXX__FC_<country>_<region>``).
         X_inventory:
-            Optional inventory DataFrame (Fact_Inventory_Batch format)
-            with columns ``[snapshot_date, sku_id, fc_id, expiry_date]``.
+            Optional inventory DataFrame (Fact_Purchase_Orders format)
+            with columns ``[snapshot_date, sku_id, plant_id, expiry_date]``.
 
         Returns
         -------
@@ -363,7 +363,7 @@ class FeatureStore:
         """Attach social momentum with a T-3 lag to prevent leakage.
 
         The GlowCast data generator documents a T-3 leading indicator
-        relationship between social signals and demand spikes.  We honour
+        relationship between commodity price signals and cost changes.  We honour
         this by lagging ``net_momentum`` by ``social_lag_days`` (default 3)
         when joining to the feature matrix.
 
@@ -372,7 +372,7 @@ class FeatureStore:
         features:
             Current feature matrix (output of ``_compute_demand_features``).
         X_social:
-            Social signals DataFrame.  Must contain ``ds`` and
+            Commodity momentum DataFrame.  Must contain ``ds`` and
             ``net_momentum`` columns.  Optionally contains ``concern``.
 
         Returns
@@ -455,8 +455,8 @@ class FeatureStore:
         features:
             Current feature matrix.
         X_inventory:
-            Fact_Inventory_Batch-format DataFrame with columns
-            ``[snapshot_date, sku_id, fc_id, expiry_date]``.
+            Purchase-order-format DataFrame with columns
+            ``[snapshot_date, sku_id, plant_id, expiry_date]``.
 
         Returns
         -------

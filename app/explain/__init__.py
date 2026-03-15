@@ -1,8 +1,8 @@
 """GlowCast explainability module.
 
 Provides model-agnostic explainability and fairness tooling for the GlowCast
-beauty & skincare supply chain forecasting platform.  Two complementary
-explanation paradigms are implemented alongside a cross-group fairness analyzer.
+cost & commercial analytics platform.  Two complementary explanation paradigms
+are implemented alongside a cross-group fairness analyzer.
 
 Modules
 -------
@@ -21,13 +21,13 @@ shap_lime
     paradigms, useful for sanity-checking and model-card reporting.
 
 fairness
-    FairnessAnalyzer — sliced evaluation across fulfillment-center groups and
+    FairnessAnalyzer — sliced evaluation across plant groups and
     SKU categories.  Implements MAPE with 95 % bootstrap CI, Kruskal-Wallis
     test for cross-group differences, chi-squared test for categorical bias,
     and arbitrary segment slicing.
 
     Target fairness results for GlowCast v2.1.0:
-    - Kruskal-Wallis: H = 2.31, p = 0.51  (no significant difference across FCs)
+    - Kruskal-Wallis: H = 2.31, p = 0.51  (no significant difference across plants)
     - Chi-squared:    chi2 = 8.7, p = 0.12 (no significant per-category bias)
 
 Example

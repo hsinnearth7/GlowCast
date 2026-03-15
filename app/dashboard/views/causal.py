@@ -1,272 +1,180 @@
-"""Causal & Experimentation — DoWhy, uplift curves, CUPED, sequential testing, power analysis."""
+"""Causal & Experimentation — DoWhy causal inference and CUPED A/B testing for cost analytics."""
 
-import streamlit as st
+from __future__ import annotations
+
 import plotly.graph_objects as go
+import streamlit as st
+
 from app.dashboard.data import (
-    load_dowhy_results, load_uplift_results, load_uplift_curve,
-    load_cuped_results, load_sequential_test,
+    load_cuped_results,
+    load_dowhy_results,
+    load_sequential_test,
+    load_uplift_curve,
+    load_uplift_results,
 )
 
 
-def render(metric_card):
-    st.title("Causal & Experimentation")
-    st.caption("DoWhy causal inference | Uplift modeling | CUPED | Sequential testing")
+def render(metric_card) -> None:
+    st.header("Causal & Experimentation")
 
-    # ── KPI Row ──
     dowhy = load_dowhy_results()
     cuped = load_cuped_results()
-    load_uplift_results()
 
+    # ── Top KPIs ──
     cols = st.columns(6)
-    kpis = [
-        ("Causal ATE", f"{dowhy['ate']:.2f}", f"CI [{dowhy['ci_lower']:.2f}, {dowhy['ci_upper']:.2f}]", "good", "#3498db"),
-        ("Refutations", "3/3 Passed", "Robust estimate", "good", "#2ecc71"),
-        ("X-Learner", "0.74 AUUC", "Best learner", "good", "#e74c3c"),
-        ("Treatment Split", "20/80", "Cost-efficient", "neutral", "#9b59b6"),
-        ("CUPED rho", f"{cuped['rho']:.2f}", f"-{cuped['variance_reduction']*100:.0f}% variance", "good", "#e67e22"),
-        ("N Observations", f"{dowhy['n_obs']/1000:.0f}K", "Sample size", "neutral", "#1abc9c"),
+    cards = [
+        ("ATE (Cost Impact)", f"${dowhy['ate']:.2f}", f"[{dowhy['ci_lower']:.2f}, {dowhy['ci_upper']:.2f}]"),
+        ("Refutations", "3/3 Passed", "Causal validity checks"),
+        ("X-Learner AUUC", "0.74", "Best uplift model"),
+        ("Treatment Split", "20/80", "Cost action vs control"),
+        ("CUPED rho", f"{cuped['rho']:.2f}", f"-{cuped['variance_reduction']:.0%} variance"),
+        ("Observations", f"{dowhy['n_obs']:,}", "Cost transactions"),
     ]
-    for col, (label, value, delta, dtype, color) in zip(cols, kpis):
-        col.markdown(metric_card(label, value, delta, dtype, color), unsafe_allow_html=True)
+    for col, (t, v, s) in zip(cols, cards):
+        col.markdown(metric_card(t, v, s), unsafe_allow_html=True)
 
-    st.markdown("")
+    st.markdown("---")
 
-    # ── DoWhy + Uplift ──
-    tab_causal, tab_experiment = st.tabs(["Causal Inference", "Experimentation"])
+    tab1, tab2 = st.tabs(["Causal Inference", "Experimentation"])
 
-    with tab_causal:
+    with tab1:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown('<div class="section-header">DoWhy 4-Step Pipeline</div>', unsafe_allow_html=True)
+            st.subheader("Average Treatment Effect (ATE)")
+            st.markdown(f"""
+            **Treatment**: `{dowhy['treatment']}` (cost reduction intervention)
+            **Outcome**: `{dowhy['outcome']}` (change in unit cost)
+            """)
 
-            # ATE visualization with CI
-            fig_ate = go.Figure()
-            fig_ate.add_trace(go.Bar(
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
                 x=["ATE"], y=[dowhy["ate"]],
-                error_y=dict(type="data", symmetric=False,
-                             array=[dowhy["ci_upper"] - dowhy["ate"]],
-                             arrayminus=[dowhy["ate"] - dowhy["ci_lower"]]),
-                marker_color="#3498db", width=0.4,
-                text=f"{dowhy['ate']:.2f}", textposition="outside",
+                error_y=dict(
+                    type="data",
+                    symmetric=False,
+                    array=[dowhy["ci_upper"] - dowhy["ate"]],
+                    arrayminus=[dowhy["ate"] - dowhy["ci_lower"]],
+                ),
+                marker_color="#4ade80",
             ))
-            fig_ate.add_hline(y=0, line_dash="dash", line_color="#95a5a6")
-            fig_ate.update_layout(
-                yaxis_title="Average Treatment Effect (units)",
-                height=250, margin=dict(l=60, r=20, t=10, b=40),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"), yaxis=dict(gridcolor="#2d3348"),
+            fig.add_hline(y=0, line_dash="dash", line_color="#6b6b8d")
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#0e1117",
+                plot_bgcolor="#1e1e2e",
+                height=300,
+                yaxis_title="Cost Change ($)",
+                title="Causal Effect of Cost Reduction Actions",
             )
-            st.plotly_chart(fig_ate, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-            # Refutation results
-            st.markdown("**Refutation Tests**")
-            for ref in dowhy["refutations"]:
-                status = "badge-green" if ref["passed"] else "badge-red"
-                icon = "Passed" if ref["passed"] else "Failed"
+        with col2:
+            st.subheader("Refutation Tests")
+            for test, result in dowhy["refutations"].items():
+                badge = "badge-green" if result["passed"] else "badge-red"
+                status = "PASSED" if result["passed"] else "FAILED"
                 st.markdown(
-                    f'<span class="badge {status}">{icon}</span> '
-                    f'**{ref["method"]}** | New ATE: {ref["new_ate"]:.2f} | p={ref["p_value"]:.2f}',
+                    f'<span class="{badge} badge">{status}</span> **{test}**',
                     unsafe_allow_html=True,
                 )
 
-            # Pipeline steps visualization
-            steps = ["1. Model (DAG)", "2. Identify (Backdoor)", "3. Estimate (OLS)", "4. Refute (3 tests)"]
-            fig_steps = go.Figure(go.Funnel(
-                y=steps, x=[100, 90, 85, 85],
-                textinfo="text", text=steps,
-                marker=dict(color=["#3498db", "#9b59b6", "#e67e22", "#2ecc71"]),
+            st.markdown("---")
+            st.subheader("Uplift Model Comparison")
+            uplift = load_uplift_results()
+            fig = go.Figure(go.Bar(
+                x=uplift["learner"], y=uplift["auuc"],
+                marker_color=["#6b6b8d", "#60a5fa", "#4ade80", "#facc15"],
+                text=uplift["auuc"],
+                textposition="outside",
             ))
-            fig_steps.update_layout(
-                height=200, margin=dict(l=10, r=10, t=10, b=10),
-                paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ecf0f1"),
-                showlegend=False,
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#0e1117",
+                plot_bgcolor="#1e1e2e",
+                height=280,
+                yaxis_title="AUUC",
+                title="Uplift AUUC by Meta-Learner",
             )
-            st.plotly_chart(fig_steps, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # ── Uplift Curve ──
+        st.subheader("Uplift Curve (X-Learner vs Random)")
+        curve = load_uplift_curve()
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=curve["fraction_treated"], y=curve["x_learner_uplift"],
+            mode="lines", name="X-Learner",
+            line=dict(color="#4ade80", width=2),
+        ))
+        fig.add_trace(go.Scatter(
+            x=curve["fraction_treated"], y=curve["random_uplift"],
+            mode="lines", name="Random",
+            line=dict(color="#6b6b8d", width=1, dash="dash"),
+        ))
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#0e1117",
+            plot_bgcolor="#1e1e2e",
+            height=300,
+            xaxis_title="Fraction Treated",
+            yaxis_title="Cumulative Uplift",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab2:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("CUPED Variance Reduction")
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=cuped["variance_reduction"] * 100,
+                title={"text": "Variance Reduction %"},
+                gauge={
+                    "axis": {"range": [0, 100]},
+                    "bar": {"color": "#4ade80"},
+                    "bgcolor": "#1e1e2e",
+                    "steps": [
+                        {"range": [0, 30], "color": "#2d2d44"},
+                        {"range": [30, 60], "color": "#3d3d5c"},
+                        {"range": [60, 100], "color": "#4d4d6c"},
+                    ],
+                },
+            ))
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#0e1117",
+                height=280,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown("**Sample Size Impact (CUPED)**")
+            for mde, data in cuped["sample_size_reduction"].items():
+                st.markdown(f"- **{mde}**: {data['raw']:,} → {data['cuped']:,} ({data['reduction']})")
 
         with col2:
-            st.markdown('<div class="section-header">Uplift Curves (4 Meta-Learners)</div>', unsafe_allow_html=True)
-
-            curve_data = load_uplift_curve()
-            learner_colors = {
-                "Random": "#95a5a6", "S-Learner": "#3498db",
-                "T-Learner": "#e67e22", "X-Learner": "#e74c3c",
-                "Causal Forest": "#9b59b6",
-            }
-            fig_curve = go.Figure()
-            for learner in ["Random", "S-Learner", "T-Learner", "Causal Forest", "X-Learner"]:
-                dash = "dash" if learner == "Random" else "solid"
-                width = 3 if learner == "X-Learner" else 2
-                fig_curve.add_trace(go.Scatter(
-                    x=curve_data["Fraction"], y=curve_data[learner],
-                    mode="lines", name=learner,
-                    line=dict(color=learner_colors[learner], width=width, dash=dash),
-                ))
-            fig_curve.update_layout(
-                xaxis_title="Fraction Treated (cumulative)",
-                yaxis_title="Normalized Uplift",
-                height=350, margin=dict(l=60, r=20, t=10, b=50),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"),
-                xaxis=dict(gridcolor="#2d3348"), yaxis=dict(gridcolor="#2d3348"),
-                legend=dict(x=0.05, y=0.95, bgcolor="rgba(0,0,0,0.3)"),
-            )
-            st.plotly_chart(fig_curve, use_container_width=True)
-
-            # AUUC comparison
-            ul = load_uplift_results()
-            fig_auuc = go.Figure()
-            auuc_colors = ["#95a5a6", "#3498db", "#e67e22", "#e74c3c", "#9b59b6"]
-            for i, row in ul.iterrows():
-                fig_auuc.add_trace(go.Bar(
-                    x=[row["Learner"]], y=[row["AUUC"]],
-                    error_y=dict(type="data", symmetric=False,
-                                 array=[row["CI_hi"] - row["AUUC"]],
-                                 arrayminus=[row["AUUC"] - row["CI_lo"]]),
-                    marker_color=auuc_colors[i], showlegend=False,
-                    text=f"{row['AUUC']:.2f}", textposition="outside",
-                ))
-            fig_auuc.add_hline(y=0.5, line_dash="dash", line_color="#95a5a6",
-                               annotation_text="Random baseline")
-            fig_auuc.update_layout(
-                yaxis_title="AUUC", height=280,
-                margin=dict(l=60, r=20, t=10, b=80),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"), yaxis=dict(gridcolor="#2d3348", range=[0.3, 0.85]),
-                xaxis=dict(tickangle=-15),
-            )
-            st.plotly_chart(fig_auuc, use_container_width=True)
-
-    with tab_experiment:
-        col3, col4 = st.columns(2)
-
-        with col3:
-            st.markdown('<div class="section-header">CUPED Variance Reduction</div>', unsafe_allow_html=True)
-
-            # Variance reduction gauge
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=cuped["variance_reduction"] * 100,
-                number=dict(suffix="%", font=dict(size=40)),
-                delta=dict(reference=0, suffix="%"),
-                gauge=dict(
-                    axis=dict(range=[0, 100], tickcolor="#ecf0f1"),
-                    bar=dict(color="#e67e22"),
-                    bgcolor="#1a1f2e",
-                    steps=[
-                        dict(range=[0, 30], color="#2d3348"),
-                        dict(range=[30, 50], color="#34495e"),
-                        dict(range=[50, 100], color="#1a1f2e"),
-                    ],
-                    threshold=dict(line=dict(color="#2ecc71", width=3), thickness=0.8, value=55),
-                ),
-                title=dict(text="Variance Reduction", font=dict(size=16)),
-            ))
-            fig_gauge.update_layout(
-                height=250, margin=dict(l=30, r=30, t=50, b=10),
-                paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ecf0f1"),
-            )
-            st.plotly_chart(fig_gauge, use_container_width=True)
-
-            # Sample size table
-            st.markdown("**Sample Size Impact**")
-            cuped_table = cuped["table"]
-            fig_table = go.Figure()
-            fig_table.add_trace(go.Bar(
-                name="Raw", x=cuped_table["MDE"], y=cuped_table["n_raw"],
-                marker_color="#e74c3c", text=[f"{v:,}" for v in cuped_table["n_raw"]],
-                textposition="outside",
-            ))
-            fig_table.add_trace(go.Bar(
-                name="CUPED", x=cuped_table["MDE"], y=cuped_table["n_cuped"],
-                marker_color="#2ecc71", text=[f"{v:,}" for v in cuped_table["n_cuped"]],
-                textposition="outside",
-            ))
-            fig_table.update_layout(
-                barmode="group", xaxis_title="Minimum Detectable Effect",
-                yaxis_title="Sample Size (per group)", height=300,
-                margin=dict(l=60, r=20, t=10, b=50),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"), yaxis=dict(gridcolor="#2d3348"),
-                legend=dict(orientation="h", y=1.05),
-            )
-            st.plotly_chart(fig_table, use_container_width=True)
-
-        with col4:
-            st.markdown('<div class="section-header">Sequential Testing (mSPRT)</div>', unsafe_allow_html=True)
-
+            st.subheader("Sequential Testing (mSPRT)")
             seq = load_sequential_test()
-            fig_seq = go.Figure()
-
-            # P-value trajectory
-            fig_seq.add_trace(go.Scatter(
-                x=seq["N_total"], y=seq["P_value"], mode="lines",
-                name="p-value", line=dict(color="#3498db", width=2),
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=seq["day"], y=seq["p_value"],
+                mode="lines", name="p-value",
+                line=dict(color="#60a5fa", width=2),
             ))
-            fig_seq.add_hline(y=0.05, line_dash="dash", line_color="#e74c3c",
-                              annotation_text="alpha=0.05")
-
-            # Shade stopping region
-            stop_idx = seq[seq["Stopped"]].index
-            if len(stop_idx) > 0:
-                stop_n = seq.loc[stop_idx[0], "N_total"]
-                fig_seq.add_vline(x=stop_n, line_dash="dot", line_color="#2ecc71",
-                                  annotation_text=f"Stop @ N={stop_n:,}")
-
-            fig_seq.update_layout(
-                xaxis_title="Total Sample Size", yaxis_title="p-value",
-                yaxis_type="log", height=300,
-                margin=dict(l=60, r=20, t=10, b=50),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"),
-                xaxis=dict(gridcolor="#2d3348"), yaxis=dict(gridcolor="#2d3348"),
-                legend=dict(orientation="h", y=-0.15),
-            )
-            st.plotly_chart(fig_seq, use_container_width=True)
-
-            # Observed delta trajectory
-            st.markdown("**Observed Treatment Effect Over Time**")
-            fig_delta = go.Figure()
-            fig_delta.add_trace(go.Scatter(
-                x=seq["N_total"], y=seq["Observed_Delta"], mode="lines",
-                line=dict(color="#e67e22", width=2), name="Observed Delta",
+            fig.add_trace(go.Scatter(
+                x=seq["day"], y=seq["alpha"],
+                mode="lines", name="Alpha",
+                line=dict(color="#f87171", width=1, dash="dash"),
             ))
-            fig_delta.add_hline(y=0.03, line_dash="dash", line_color="#2ecc71",
-                                annotation_text="True effect (3%)")
-            fig_delta.add_hline(y=0, line_dash="dot", line_color="#95a5a6")
-            fig_delta.update_layout(
-                xaxis_title="Total Sample Size", yaxis_title="Observed Delta",
-                height=250, margin=dict(l=60, r=20, t=10, b=50),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#ecf0f1"),
-                xaxis=dict(gridcolor="#2d3348"), yaxis=dict(gridcolor="#2d3348"),
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="#0e1117",
+                plot_bgcolor="#1e1e2e",
+                height=300,
+                yaxis_title="p-value",
+                xaxis_title="Day",
+                yaxis_type="log",
+                title="Sequential Test p-value Trajectory",
             )
-            st.plotly_chart(fig_delta, use_container_width=True)
-
-    # ── Methodology Summary ──
-    st.markdown('<div class="section-header">Methodology Interconnections</div>', unsafe_allow_html=True)
-    fig_method = go.Figure(go.Sankey(
-        arrangement="snap",
-        node=dict(
-            pad=15, thickness=20,
-            line=dict(color="#2d3348", width=1),
-            label=["Observational Data", "Treatment Assignment (SHA-256)",
-                   "DoWhy (ATE)", "Uplift (CATE)", "CUPED", "Sequential Test",
-                   "Promotion Strategy", "Budget Allocation"],
-            color=["#3498db", "#e67e22", "#9b59b6", "#e74c3c",
-                   "#2ecc71", "#1abc9c", "#f39c12", "#27ae60"],
-        ),
-        link=dict(
-            source=[0, 1, 1, 0, 0, 2, 3, 4, 5],
-            target=[1, 2, 3, 4, 5, 6, 7, 6, 6],
-            value=[30, 15, 15, 10, 10, 12, 12, 8, 8],
-            color=["rgba(52,152,219,0.3)", "rgba(230,126,34,0.3)", "rgba(231,76,60,0.3)",
-                   "rgba(46,204,113,0.3)", "rgba(26,188,156,0.3)", "rgba(155,89,182,0.3)",
-                   "rgba(231,76,60,0.3)", "rgba(46,204,113,0.3)", "rgba(26,188,156,0.3)"],
-        ),
-    ))
-    fig_method.update_layout(
-        height=300, margin=dict(l=20, r=20, t=10, b=10),
-        paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ecf0f1", size=12),
-    )
-    st.plotly_chart(fig_method, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)

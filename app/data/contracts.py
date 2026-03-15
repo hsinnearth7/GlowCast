@@ -1,86 +1,71 @@
-"""Data contracts for GlowCast — re-exports all schemas plus forecast I/O contracts.
+"""Data contracts for GlowCast — re-exports all schemas plus cost analytics I/O contracts.
 
 Usage:
-    from app.data.contracts import Dim_Product, Fact_Sales, Y_SCHEMA, FORECAST_SCHEMA
+    from app.data.contracts import Dim_Product, Fact_Cost_Transactions, SHOULD_COST_SCHEMA
 """
 
 from __future__ import annotations
 
-import pandera as pa
 from pandera import Check, Column, DataFrameSchema
 
 # Re-export star schema contracts
 from app.data.star_schema import (
-    Dim_Customer,
-    Dim_Location,
+    Dim_Plant,
     Dim_Product,
-    Dim_Weather,
-    Fact_Inventory_Batch,
-    Fact_Order_Fulfillment,
-    Fact_Review_Aspects,
-    Fact_Sales,
-    Fact_Social_Signals,
+    Dim_Supplier,
+    Fact_Commodity_Prices,
+    Fact_Cost_Reduction_Actions,
+    Fact_Cost_Transactions,
+    Fact_Purchase_Orders,
+    Fact_Quality_Events,
+    Fact_Supplier_Quotes,
 )
 
 __all__ = [
-    "Dim_Product", "Dim_Location", "Dim_Weather", "Dim_Customer",
-    "Fact_Sales", "Fact_Inventory_Batch", "Fact_Social_Signals",
-    "Fact_Order_Fulfillment", "Fact_Review_Aspects",
-    "Y_SCHEMA", "S_SCHEMA", "FORECAST_SCHEMA", "EVAL_SCHEMA",
+    "Dim_Product", "Dim_Supplier", "Dim_Plant",
+    "Fact_Cost_Transactions", "Fact_Supplier_Quotes", "Fact_Cost_Reduction_Actions",
+    "Fact_Commodity_Prices", "Fact_Purchase_Orders", "Fact_Quality_Events",
+    "SHOULD_COST_SCHEMA", "COST_VARIANCE_SCHEMA", "MAKE_VS_BUY_SCHEMA",
 ]
 
-# ── Nixtla Y format ──────────────────────────────────────────────────────
+# ── Should-Cost model output ─────────────────────────────────────────────
 
-Y_SCHEMA = DataFrameSchema(
-    {
-        "unique_id": Column(str, nullable=False),
-        "ds": Column("datetime64[ns]"),
-        "y": Column(float, Check.ge(0)),
-    },
-    name="Y_Schema",
-    coerce=True,
-)
-
-# ── Hierarchy summing matrix ─────────────────────────────────────────────
-
-S_SCHEMA = DataFrameSchema(
+SHOULD_COST_SCHEMA = DataFrameSchema(
     {
         "sku_id": Column(str, nullable=False),
-        "fc_id": Column(str, nullable=False),
-        "country": Column(str, nullable=False),
-        "national": Column(str, nullable=False),
+        "should_cost": Column(float, Check.gt(0)),
+        "actual_cost": Column(float, Check.gt(0)),
+        "gap_pct": Column(float),
+        "gap_abs": Column(float),
+        "largest_element": Column(str, nullable=False),
     },
-    name="S_Schema",
-    coerce=True,
-    index=pa.Index(str, name="unique_id"),
-)
-
-# ── Forecast output ──────────────────────────────────────────────────────
-
-FORECAST_SCHEMA = DataFrameSchema(
-    {
-        "unique_id": Column(str, nullable=False),
-        "ds": Column("datetime64[ns]"),
-        "y_hat": Column(float),
-        "y_lo": Column(float, nullable=True),
-        "y_hi": Column(float, nullable=True),
-        "model": Column(str, nullable=False),
-    },
-    name="Forecast_Schema",
+    name="Should_Cost_Schema",
     coerce=True,
 )
 
-# ── Evaluation results ───────────────────────────────────────────────────
+# ── Cost variance analysis output ────────────────────────────────────────
 
-EVAL_SCHEMA = DataFrameSchema(
+COST_VARIANCE_SCHEMA = DataFrameSchema(
     {
-        "model": Column(str, nullable=False),
-        "fold": Column(int, Check.ge(0)),
-        "mape": Column(float, Check.ge(0)),
-        "rmse": Column(float, Check.ge(0)),
-        "wmape": Column(float, Check.ge(0)),
-        "coverage": Column(float, Check.in_range(0, 1), nullable=True),
+        "period": Column("datetime64[ns]"),
+        "avg_unit_cost": Column(float, Check.gt(0)),
+        "total_cost": Column(float, Check.ge(0)),
+        "volume": Column(int, Check.ge(0)),
+        "cost_change_pct": Column(float, nullable=True),
     },
-    name="Eval_Schema",
+    name="Cost_Variance_Schema",
+    coerce=True,
+)
+
+# ── Make-vs-Buy comparison output ────────────────────────────────────────
+
+MAKE_VS_BUY_SCHEMA = DataFrameSchema(
+    {
+        "cost_change_pct": Column(float),
+        "make_cost": Column(float, Check.gt(0)),
+        "buy_cost": Column(float, Check.gt(0)),
+        "recommendation": Column(str, Check.isin(["make", "buy"])),
+    },
+    name="Make_vs_Buy_Schema",
     coerce=True,
 )

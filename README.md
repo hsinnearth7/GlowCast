@@ -1,19 +1,19 @@
 <div align="center">
 
-# GlowCast — Beauty Supply Chain Demand Sensing & Inventory Optimization
+# GlowCast — Cost & Commercial Analytics
 
-**Social signal leading indicators, geo-climate demand modeling, shelf-life-aware FIFO optimization, and causal inference (X-Learner) for 5,000 SKUs across 12 fulfillment centers in 5 countries**
+**Should-cost modeling, OCOGS tracking, DoWhy causal inference, CUPED A/B testing, make-vs-buy analysis, and price elasticity for 500 SKUs across 12 manufacturing plants with 5 suppliers in 7 countries**
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen.svg)](.github/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests: 120+](https://img.shields.io/badge/tests-120+-blue.svg)](tests/)
+[![Tests: 159+](https://img.shields.io/badge/tests-159+-blue.svg)](tests/)
 [![Coverage: 85%+](https://img.shields.io/badge/coverage-85%25+-yellow.svg)]()
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED.svg)](docker-compose.yml)
 
 </div>
 
-> GlowCast simulates a global e-commerce platform's beauty & personal care division managing **5,000 SKUs** across **12 fulfillment centers** in **5 countries** (US, Germany, UK, Japan, India). The platform integrates social signal leading indicators (Reddit/TikTok/@cosme — T-3 lag cross-correlation), geo-climate demand sensing (temperature/humidity → texture affinity at 23.5°C switch point), shelf-life-aware FIFO inventory optimization (450–910 day shelf lives), and causal inference for promotion targeting (X-Learner AUUC 0.74, 20/80 treatment split). **Key Results:** Routing Ensemble achieves **12% MAPE** overall (8% stable, 15% seasonal), CUPED reduces A/B test sample sizes by **55%**, and X-Learner identifies promotion-sensitive SKUs with **AUUC 0.74**.
+> GlowCast is a Cost & Commercial Analytics platform managing **500 SKUs** across **12 manufacturing plants** in **7 countries** (CN, TW, DE, US, MX, IN, JP) with **5 suppliers** and **5 commodity groups** (Steel, Copper, Resin, Aluminum, Silicon). The platform performs **should-cost BOM decomposition** (raw material + labor + overhead + logistics + tariff), **OCOGS variance tracking** (actual vs. budget with trend analysis), a **cost reduction engine** (8 action types with causal effect estimation), **make-vs-buy multi-criteria analysis** (cost, quality, lead time, strategic weighting), and **price elasticity estimation** (log-log OLS regression). **Key technical highlights:** DoWhy causal inference identifies significant cost drivers through a 4-step workflow (model, identify, estimate, refute), and CUPED variance reduction lowers A/B test sample size by **55%** (rho = 0.74). X-Learner handles 20/80 treatment imbalance for cost-reduction uplift targeting with **AUUC 0.74**.
 
 ---
 
@@ -23,22 +23,23 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        GlowCast Platform                           │
 ├──────────────┬──────────────┬──────────────┬───────────────────────┤
-│  Data Layer  │  Analytics   │  ML/AI       │  Operations           │
+│  Data Layer  │  Analytics   │ Cost Modules │  Operations           │
 ├──────────────┼──────────────┼──────────────┼───────────────────────┤
-│ Star Schema  │ SQL Pipes(5) │ Forecast(6)  │ Feature Store         │
-│ 9 tables     │ DOS/WOC      │ NaiveMA      │ Drift Monitor         │
-│ Pandera      │ Scrap Risk   │ SARIMAX      │ MLflow Tracker        │
-│ contracts    │ Cross-Zone   │ XGBoost      │ Retrain Trigger       │
-│              │ Anomaly      │ LightGBM     │                       │
-│ Data Gen     │ Social Lead  │ Chronos-2    │ Conformal PI          │
-│ 5000 SKUs    │              │ Routing Ens. │ Walk-Forward CV       │
-│ 12 FCs       │              │              │                       │
+│ Star Schema  │ SQL Pipes(4) │ Should-Cost  │ Feature Store         │
+│ 9 tables     │ Cost Variance│ OCOGS        │ Drift Monitor         │
+│ Pandera      │ Should-Cost  │ Cost         │ MLflow Tracker        │
+│ contracts    │   Gap        │  Reduction   │ Retrain Trigger       │
+│              │ Supplier     │ Make-vs-Buy  │                       │
+│ CostDataGen  │   Perf       │ Price        │                       │
+│ 500 SKUs     │ Cost Anomaly │  Elasticity  │                       │
+│ 12 Plants    │              │              │                       │
 ├──────────────┼──────────────┼──────────────┼───────────────────────┤
-│ Segment      │ A/B Testing  │ Causal       │ Explainability        │
+│ Segment      │Experimentation│ Causal      │ Explainability        │
 │ Genes (10)   │ CUPED        │ DoWhy 4-step │ SHAP + LIME           │
-│ Climate (12) │ Sequential   │ X-Learner    │ Fairness (KW/Chi2)    │
-│ Taxonomy     │ Interleaving │ Uplift (4)   │ Model Card            │
-│              │ Power/SRM    │ Causal Forest│                       │
+│ 5 Categories │ Sequential   │ X-Learner    │ Fairness (KW/Chi2)    │
+│ 2 Cost Tiers │ Interleaving │ Uplift (4)   │                       │
+│ 5 Commodities│ Power/SRM    │ Causal Forest│                       │
+│ 5 Suppliers  │ Bucketing    │              │                       │
 └──────────────┴──────────────┴──────────────┴───────────────────────┘
 ```
 
@@ -46,26 +47,15 @@
 
 ## Key Results
 
-### Forecasting Performance (6 Models)
+### Cost Analytics Performance
 
-| Model | MAPE | RMSE | WMAPE | Role |
-|-------|------|------|-------|------|
-| NaiveMA(30) | 28.5% | 22.1 | 27.8% | Baseline |
-| SARIMAX | 18.3% | 15.2 | 17.6% | Intermittent SKUs |
-| XGBoost | 13.8% | 10.1 | 13.2% | Feature-rich |
-| LightGBM | 12.5% | 9.0 | 12.0% | Primary mature |
-| Chronos-2 ZS | 19.0% | 14.2 | 18.5% | Cold-start |
-| **Routing Ensemble** | **11.8%** | **8.3** | **11.2%** | **Production** |
-
-### Slice Evaluation (5 Segments)
-
-| Segment | MAPE | 95% CI | RMSE | Coverage | n_SKUs | Cohen's d |
-|---------|------|--------|------|----------|--------|-----------|
-| Overall | 12.0% | [11.2, 12.8] | 8.3 | 91% | 5,000 | — |
-| Stable (AntiAging) | 8.0% | [7.3, 8.7] | 5.1 | 94% | 3,200 | 1.2 (L) |
-| Seasonal (SunProtection) | 15.0% | [13.8, 16.2] | 12.7 | 89% | 1,200 | 0.9 (L) |
-| Promo Days | 22.0% | [19.5, 24.5] | 18.4 | 78% | varies | 2.5 (L) |
-| Cold Start (<60d) | 19.0% | [16.8, 21.2] | 14.2 | 85% | 600 | 1.8 (L) |
+| Module | Metric | Value | Description |
+|--------|--------|-------|-------------|
+| Should-Cost | Gap identification rate | >90% | Flags SKUs with >10% cost gap vs. BOM target |
+| OCOGS Tracker | Variance detection | 5% threshold | Monthly actual-vs-budget variance alerting |
+| Cost Reduction | Savings estimate accuracy | 80% realization | Projected vs. realized savings alignment |
+| Make-vs-Buy | Recommendation accuracy | Multi-criteria | Weighted composite (cost 35%, quality 30%, lead time 20%, strategic 15%) |
+| Price Elasticity | Elasticity estimation | Log-log OLS | p < 0.05 significance threshold with CI |
 
 ### A/B Testing (CUPED)
 
@@ -95,11 +85,10 @@ Treatment/control: 20/80 (X-Learner wins due to cross-estimation on imbalanced d
 
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
-| Forecast MAPE | 28.5% (Naive) | 11.8% (Ensemble) | -59% |
-| Scrap rate | ~15% (industry) | <2% (FIFO optimization) | -87% |
-| Cross-zone shipping | 35% (uniform alloc) | <5% (climate-driven) | -86% |
+| Cost driver identification | Manual review | DoWhy causal (automated) | Systematic |
 | A/B sample size | 15,200/group | 6,840/group (CUPED) | -55% |
-| Promotion budget | $X | $0.7X (targeted uplift) | -30% |
+| Cost reduction targeting | Uniform actions | Uplift-targeted (X-Learner) | Precision |
+| Supplier risk assessment | Spreadsheet-based | Multi-criteria scoring | Quantified |
 
 ---
 
@@ -109,11 +98,11 @@ GlowCast includes a 5-page Streamlit dashboard for real-time KPI monitoring and 
 
 | Page | Description |
 |------|-------------|
-| **Executive Overview** | 6 top-level KPIs, platform data flow (Sankey), business impact table, 6-model radar, segment evaluation, uplift comparison, fairness heatmap |
-| **Demand & Forecasting** | 6-model MAPE ranking, grouped metrics, 12-fold walk-forward CV, routing ensemble treemap, ablation study, segment heatmap |
-| **Inventory & Supply Chain** | Days-of-Supply heatmap (FC x Concern), scrap risk distribution, cross-zone penalties, demand anomaly timeline, social lead-lag correlation |
+| **Executive Overview** | Top-level KPIs, platform data flow, business impact table, cost segment evaluation, uplift comparison, fairness heatmap |
+| **Should-Cost & OCOGS** | BOM decomposition breakdown, should-cost gap analysis, OCOGS variance trends, budget vs. actual tracking, cost element waterfall |
+| **Cost Reduction & Make-vs-Buy** | Reduction action effectiveness, make-vs-buy recommendations, supplier quote comparison, breakeven volume analysis |
 | **Causal & Experimentation** | DoWhy ATE with CI, refutation tests, uplift curves (4 meta-learners), CUPED variance reduction gauge, sequential testing (mSPRT) |
-| **MLOps & Quality** | 3-tab drift timeline (MAPE/KS/PSI), SHAP vs LIME feature importance, fairness by segment, retrain decision flow (Sankey) |
+| **MLOps & Quality** | Drift timeline (KS/PSI), SHAP vs LIME feature importance, fairness by segment, retrain decision flow |
 
 ```bash
 # Launch dashboard
@@ -140,7 +129,7 @@ pytest tests/ -v
 # Quick (50 SKUs, 90 days)
 python -m app.data.data_generator --n-skus 50 --n-days 90
 
-# Full (200 SKUs, 730 days)
+# Full (500 SKUs, 1095 days)
 python -m app.data.data_generator
 
 # Validate schemas only
@@ -153,27 +142,31 @@ python -m app.data.data_generator --validate-only
 
 ### Data Pipeline — Star Schema + Pandera Contracts
 
-Data follows a star schema design with 9 Pandera-validated tables, supporting 10 segment genes (5 concerns × 2 textures) across 12 fulfillment centers with geo-climate modeling.
+Data follows a star schema design with 9 Pandera-validated tables, supporting 10 cost-behavior segments (5 categories x 2 cost tiers) across 12 manufacturing plants with 5 suppliers and 5 commodity groups.
 
 **Domain-specific properties:**
-1. **Social signal lag** — Reddit/TikTok/@cosme signals lead sales by T-3 days (cross-correlation)
-2. **Temperature switch point** — 23.5°C threshold switches demand between Lightweight and Rich textures
-3. **Shelf-life FIFO** — 450 days (Brightening/Light) to 910 days (Hydrating/Rich)
-4. **Intermittent demand** — Negative Binomial distribution with 30%+ zero-demand SKUs
-5. **Treatment imbalance** — 20/80 treatment/control split for promotion experiments
+1. **Cost categories** — RawMaterials, Components, Packaging, Labor, Overhead with Direct/Indirect tiers
+2. **Commodity price modeling** — Steel, Copper, Resin, Aluminum, Silicon with seasonal amplitude and volatility
+3. **Supplier profiles** — 5 suppliers across CN/TW/DE/US/IN with quality, on-time, lead-time, and price premium attributes
+4. **Plant geography** — 12 plants across 7 countries with local labor rates and overhead allocations
+5. **Treatment imbalance** — 20/80 treatment/control split for cost-reduction experiments
 
-### Model Comparison — Routing Ensemble
+### Should-Cost Model — BOM Decomposition
 
-All 6 models share a unified `fit/predict` interface (Strategy + Factory pattern):
+Decomposes product cost into 5 constituent elements and benchmarks against should-cost targets:
+- **raw_material** — commodity-linked material cost based on BOM and market prices
+- **labor** — plant-specific labor content based on geography and process complexity
+- **overhead** — allocated overhead based on plant utilization and capacity
+- **logistics** — transportation and warehousing based on origin/destination
+- **tariff** — duty and import costs based on supplier country and trade agreements
 
-**Routing logic** assigns each SKU to its best-suited model:
-- `history < 60 days` → **Chronos-2 ZS** (zero-shot, no training data needed)
-- `intermittency > 30%` → **SARIMAX** (handles sparse demand)
-- `otherwise` → **LightGBM** (lowest MAPE on mature SKUs: 12.5%)
+Gap analysis flags SKUs where actual cost exceeds should-cost by more than the configured threshold (default 10%).
 
 ### Causal Inference — DoWhy + X-Learner
 
-4-step DoWhy workflow (model → identify → estimate → refute) combined with uplift modeling:
+4-step DoWhy workflow (model, identify, estimate, refute) combined with uplift modeling:
+- **Treatment:** `cost_reduction_action` — whether a cost reduction intervention was applied
+- **Outcome:** `unit_cost_change` — observed change in per-unit cost
 - **X-Learner** handles 20/80 treatment imbalance via cross-estimation (AUUC 0.74)
 - **Causal Forest** provides heterogeneous treatment effect estimation (AUUC 0.71)
 - Propensity-weighted combination routes more weight to the control-imputed estimate
@@ -185,13 +178,6 @@ All 6 models share a unified `fit/predict` interface (Strategy + Factory pattern
 - **Team Draft interleaving** for ranking comparison
 - **SHA-256 hash bucketing** with SRM detection
 
-### Evaluation Methodology
-
-- **Walk-Forward CV:** Monthly retrain, 14-day test horizon
-- **Statistical significance:** Wilcoxon signed-rank test (non-parametric, paired)
-- **Effect size:** Cohen's d quantifies practical significance beyond p-values
-- **Conformal prediction:** Calibrated 90% intervals with finite-sample correction
-
 ---
 
 ## Architecture Decision Records
@@ -201,14 +187,9 @@ All 6 models share a unified `fit/predict` interface (Strategy + Factory pattern
 **Why:** Cross-estimation achieves AUUC 0.74 vs T-Learner's 0.68. Propensity-weighted combination routes more weight to the control-imputed estimate trained on the larger 80% arm.
 **Rejected:** T-Learner (equal arm assumption fails at 20/80).
 
-### [ADR-002: Routing Ensemble over Stacking](docs/adr/002-routing-ensemble.md)
-**Decision:** Deterministic routing (cold-start → Chronos, intermittent → SARIMAX, mature → LightGBM).
-**Why:** Interpretable model selection auditable during interviews. Stacking's marginal MAPE gain (0.7pp) was not statistically significant (Wilcoxon p=0.23).
-**Rejected:** Stacking (marginal, non-significant gain) and simple averaging (dilutes best model).
-
 ### [ADR-003: Feature Store AP > CP](docs/adr/003-feature-store-ap-cp.md)
 **Decision:** Eventual consistency (24h TTL) prioritizes availability over strong consistency.
-**Why:** A/B test showed no significant MAPE difference between 1-hour and 24-hour fresh features (p=0.82).
+**Why:** A/B test showed no significant accuracy difference between 1-hour and 24-hour fresh features (p=0.82).
 **Rejected:** Strong consistency (CP) — adds complexity with negligible accuracy gain.
 
 ---
@@ -225,23 +206,28 @@ GlowCast/
 │   │   ├── dashboard.py               # Streamlit entry point (5-page SPA)
 │   │   ├── data.py                    # Standalone data simulator (all KPIs)
 │   │   └── views/                     # Page modules
-│   │       ├── overview.py            # Executive Overview (Sankey, radar, fairness)
-│   │       ├── forecasting.py         # Demand & Forecasting (6 models, CV, ablation)
-│   │       ├── supply_chain.py        # Inventory & Supply Chain (DoS, scrap, anomalies)
+│   │       ├── overview.py            # Executive Overview
+│   │       ├── cost_analytics.py      # Should-Cost & OCOGS
+│   │       ├── cost_operations.py     # Cost Reduction & Make-vs-Buy
 │   │       ├── causal.py              # Causal & Experimentation (DoWhy, uplift, CUPED)
 │   │       └── mlops.py               # MLOps & Quality (drift, SHAP, fairness, retrain)
+│   ├── cost/
+│   │   ├── should_cost.py             # BOM decomposition & gap analysis
+│   │   ├── ocogs_tracker.py           # Actual vs. budget variance tracking
+│   │   ├── cost_reduction.py          # 8 action types, causal effect estimation
+│   │   ├── make_vs_buy.py             # Multi-criteria make-vs-buy analysis
+│   │   └── price_elasticity.py        # Log-log OLS elasticity estimation
 │   ├── data/
-│   │   ├── segment_genes.py           # 10 segments, 12 FCs, taxonomy
+│   │   ├── segment_genes.py           # 10 segments, 5 commodities, 5 suppliers
 │   │   ├── star_schema.py             # 9 Pandera schemas
-│   │   ├── data_generator.py          # NegBin demand + social + climate
-│   │   └── contracts.py               # Y/S/Forecast/Eval schemas
+│   │   ├── data_generator.py          # CostDataGenerator (500 SKUs, 12 plants)
+│   │   └── contracts.py               # Data contract schemas
 │   ├── sql/
 │   │   ├── executor.py                # SQLite pipeline runner
-│   │   ├── dos_woc.sql                # Days of Supply / Weeks of Cover
-│   │   ├── scrap_risk.sql             # FIFO shelf-life scrap matrix
-│   │   ├── cross_zone_penalty.sql
-│   │   ├── demand_anomaly.sql
-│   │   └── social_lead_lag.sql
+│   │   ├── dos_woc.sql                # Cost Variance Analysis (Plant x Category)
+│   │   ├── scrap_risk.sql             # Should-Cost Gap Analysis
+│   │   ├── cross_zone_penalty.sql     # Supplier Performance Analysis
+│   │   └── demand_anomaly.sql         # Cost Anomaly Detection (Z-score)
 │   ├── experimentation/
 │   │   ├── cuped.py                   # CUPED variance reduction
 │   │   ├── sequential.py              # mSPRT always-valid p-values
@@ -251,22 +237,19 @@ GlowCast/
 │   ├── causal/
 │   │   ├── dowhy_pipeline.py          # 4-step DoWhy workflow
 │   │   └── uplift.py                  # S/T/X-Learner + Causal Forest
-│   ├── forecasting/
-│   │   ├── models.py                  # ABC + 6 models + Factory
-│   │   ├── contracts.py               # ForecastInput/Output
-│   │   ├── hierarchy.py               # 4-layer MinTrace reconciliation
-│   │   └── evaluation.py              # Walk-forward CV + conformal
 │   ├── mlops/
 │   │   ├── feature_store.py           # Offline/online dual-mode
-│   │   ├── drift_monitor.py           # KS + PSI + MAPE drift
+│   │   ├── drift_monitor.py           # KS + PSI + cost metric drift
 │   │   ├── mlflow_tracker.py          # Experiment tracking
 │   │   └── retrain_trigger.py
-│   └── explain/
-│       ├── shap_lime.py               # SHAP TreeExplainer + LIME
-│       └── fairness.py                # KW / Chi2 fairness tests
+│   ├── explain/
+│   │   ├── shap_lime.py               # SHAP TreeExplainer + LIME
+│   │   └── fairness.py                # KW / Chi2 fairness tests
+│   └── api/
+│       └── main.py                    # FastAPI REST API (cost endpoints)
 ├── configs/
 │   └── glowcast.yaml                  # All configuration
-├── tests/                             # 120+ tests (24 files)
+├── tests/                             # 159+ tests (24 files)
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records
 │   ├── model_card.md                  # Mitchell et al. FAT* 2019
@@ -285,17 +268,17 @@ GlowCast/
 
 | # | Limitation | Root Cause | Planned Improvement |
 |---|-----------|-----------|---------------------|
-| 1 | Promo MAPE 22% (highest segment) | Promotion timing is exogenous and sparse in training data | Add promotion calendar features; increase promo-period training weight |
-| 2 | Cold-start MAPE 19% for <60d SKUs | Limited history prevents lag/rolling feature computation | Leverage segment-level transfer learning; hierarchical priors |
-| 3 | Conformal coverage 78% on promo days | Non-stationary distribution during promotions violates exchangeability | Conditional conformal prediction with promo flag stratification |
-| 4 | Social lag assumes fixed T-3 | Optimal lag varies by concern (1-14 days) | Dynamic lag selection via cross-correlation per SKU-concern |
-| 5 | Synthetic data only | No real transaction data available | Partner with beauty retailers for anonymized validation data |
+| 1 | Synthetic data only | No real procurement/manufacturing data available | Partner with manufacturers for anonymized validation data |
+| 2 | Commodity price simulation uses simple seasonal + noise | Real commodity markets have complex dynamics (geopolitical, supply shocks) | Integrate real-time commodity price feeds (e.g., LME, COMEX) |
+| 3 | Tariff/duty rates are static per country | Trade policies change with regulations and agreements | Add dynamic tariff schedule lookups |
+| 4 | Make-vs-buy weights are configurable but not learned | Optimal weighting varies by product category and strategic context | Learn weights from historical make-vs-buy outcome data |
+| 5 | Price elasticity assumes log-linear relationship | Some products exhibit kinked or nonlinear demand curves | Add piecewise regression and nonparametric alternatives |
 
 ---
 
 ## Testing
 
-**120+ tests** across 24 test files:
+**159+ tests** across 24 test files:
 
 ```bash
 pytest tests/ -v                       # Full test suite
@@ -309,13 +292,13 @@ ruff check app/ tests/                 # Lint
 | Layer | Technologies |
 |-------|-------------|
 | **Language** | Python 3.11+ |
-| **Forecasting** | statsforecast, hierarchicalforecast, LightGBM, XGBoost, Chronos-2 |
+| **Cost Analytics** | Should-Cost BOM, OCOGS variance, cost reduction engine, make-vs-buy, price elasticity (log-log OLS) |
 | **Causal Inference** | DoWhy, CausalML, EconML (X-Learner, Causal Forest) |
 | **Experimentation** | CUPED, mSPRT sequential testing, Team Draft interleaving |
 | **MLOps** | MLflow, Evidently (drift), Pandera (contracts), structlog |
-| **Explainability** | SHAP, LIME, fairness tests (Kruskal-Wallis, Chi²) |
-| **Data** | Star schema (9 tables), SQL analytics pipelines, SQLite |
-| **Dashboard** | Streamlit, Plotly (Sankey, radar, heatmaps, gauges) |
+| **Explainability** | SHAP, LIME, fairness tests (Kruskal-Wallis, Chi-squared) |
+| **Data** | Star schema (9 tables), SQL analytics pipelines (4), SQLite |
+| **Dashboard** | Streamlit, Plotly (waterfall, heatmaps, gauges) |
 | **Infrastructure** | Docker, PyYAML config, pyproject.toml (PEP 621) |
 | **Testing** | pytest, Hypothesis (property-based), ruff, mypy |
 
@@ -324,21 +307,15 @@ ruff check app/ tests/                 # Lint
 ## References
 
 1. **Deng, A., Xu, Y., Kohavi, R., & Walker, T.** (2013). Improving the Sensitivity of Online Controlled Experiments by Utilizing Pre-Experiment Data. *WSDM 2013*. (CUPED)
-2. **Künzel, S. R., Sekhon, J. S., Bickel, P. J., & Yu, B.** (2019). Metalearners for Estimating Heterogeneous Treatment Effects. *PNAS*, 116(10). (X-Learner)
+2. **Kunzel, S. R., Sekhon, J. S., Bickel, P. J., & Yu, B.** (2019). Metalearners for Estimating Heterogeneous Treatment Effects. *PNAS*, 116(10). (X-Learner)
 3. **Sharma, A., & Kiciman, E.** (2020). DoWhy: An End-to-End Library for Causal Inference. *arXiv:2011.04216*.
 4. **Johari, R., Pekelis, L., & Walsh, D.** (2017). Always Valid Inference: Continuous Monitoring of A/B Tests. *Operations Research*. (Sequential Testing)
 5. **Chapelle, O., Joachims, T., Radlinski, F., & Yue, Y.** (2012). Large-Scale Validation and Analysis of Interleaved Search Evaluation. *TOIS*. (Interleaving)
-6. **Wickramasuriya, S. L., Athanasopoulos, G., & Hyndman, R. J.** (2019). Optimal Forecast Reconciliation for Hierarchical and Grouped Time Series Through Trace Minimization. *JASA*. (MinTrace)
-7. **Pineau, J., et al.** (2019). The Machine Learning Reproducibility Checklist. *NeurIPS*.
-8. **Pearl, J.** (2009). *Causality: Models, Reasoning, and Inference*. Cambridge University Press.
-9. **Ansari, A. F., et al.** (2024). Chronos: Learning the Language of Time Series. *arXiv:2403.07815*.
-10. **Mitchell, M., et al.** (2019). Model Cards for Model Reporting. *FAT\* 2019*.
-
----
-
-## License
-
-MIT
+6. **Pineau, J., et al.** (2019). The Machine Learning Reproducibility Checklist. *NeurIPS*.
+7. **Pearl, J.** (2009). *Causality: Models, Reasoning, and Inference*. Cambridge University Press.
+8. **Mitchell, M., et al.** (2019). Model Cards for Model Reporting. *FAT\* 2019*.
+9. **Ellram, L. M.** (1995). Total Cost of Ownership: An Analysis Approach for Purchasing. *International Journal of Physical Distribution & Logistics Management*. (Should-Cost / TCO)
+10. **Monczka, R. M., Handfield, R. B., Giunipero, L. C., & Patterson, J. L.** (2015). *Purchasing and Supply Chain Management*. Cengage Learning. (OCOGS / Make-vs-Buy)
 
 ---
 
@@ -349,9 +326,9 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 ### Project Structure (Infrastructure)
 
 ```
-├── app/api/                    # FastAPI API layer (NEW)
+├── app/api/                    # FastAPI API layer
 │   ├── __init__.py
-│   └── main.py                 # health, metrics, pipelines, forecasts, drift
+│   └── main.py                 # health, metrics, pipelines, cost endpoints
 ├── k8s/                        # Kubernetes manifests
 │   ├── namespace.yaml
 │   ├── configmap.yaml
@@ -364,14 +341,14 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 │   ├── ingress.yaml            # / → dashboard, /api → api
 │   ├── postgres.yaml           # PostgreSQL 16, 2Gi PVC
 │   ├── redis.yaml              # Redis 7
-│   └── canary/                 # Istio + Flagger (custom MAPE/drift metrics)
+│   └── canary/                 # Istio + Flagger (custom cost/drift metrics)
 ├── helm/glowcast/              # Helm chart
 │   ├── Chart.yaml
 │   ├── values.yaml             # api/dashboard/postgresql/redis
 │   └── templates/              # 9 templated manifests
 ├── serving/                    # BentoML model serving
 │   ├── bentofile.yaml
-│   └── service.py              # forecast / uplift_predict / detect_drift
+│   └── service.py              # cost_analysis / uplift_predict / detect_drift
 ├── monitoring/                 # Observability stack
 │   ├── prometheus.yml          # + K8s service discovery
 │   ├── docker-compose.monitoring.yaml
@@ -395,7 +372,7 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 │   └── slo.yaml                # 8 SLOs including AUUC > 0.70
 └── data_quality/               # Great Expectations
     ├── great_expectations.yml
-    ├── expectations/            # sales_data / product_data / social_signals
+    ├── expectations/            # cost_transactions / product_data / supplier_data
     ├── checkpoints/
     └── validate.py             # Lightweight engine (no GX dependency required)
 ```
@@ -404,10 +381,10 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 
 | Component | Technology | Details |
 |-----------|-----------|---------|
-| **API Layer** | FastAPI | NEW — 6 endpoints: health, metrics, pipelines, forecasts, drift status |
+| **API Layer** | FastAPI | 9 endpoints: health, metrics, pipelines, should-cost, variance, make-vs-buy, reduction, elasticity, drift status |
 | **Container Orchestration** | Kubernetes | API (2 replicas) + Streamlit dashboard (1 replica), health probes |
 | **Helm Chart** | Helm v3 | Parameterized: api, dashboard, postgresql, redis |
-| **Model Serving** | BentoML | 3 endpoints: `forecast` (routing ensemble), `uplift_predict` (X-Learner), `detect_drift` |
+| **Model Serving** | BentoML | 3 endpoints: `cost_analysis` (should-cost), `uplift_predict` (X-Learner), `detect_drift` |
 | **Database** | PostgreSQL 16 | StatefulSet with 2Gi persistent volume |
 | **Cache** | Redis 7 | Feature store online serving |
 | **Secrets** | K8s Secrets | API keys, database URLs |
@@ -417,9 +394,9 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 | Component | Technology | Details |
 |-----------|-----------|---------|
 | **Model Registry** | MLflow + MinIO | Extends existing mlflow_tracker.py with registry workflow |
-| **Metrics** | Prometheus | 16 custom metrics (`glowcast_*`): forecast, uplift AUUC, drift, data quality, CUPED |
-| **Dashboards** | Grafana | 25 panels: forecast quality, uplift, CUPED variance reduction, drift, pipeline, API |
-| **Canary Deployment** | Istio + Flagger | Custom metric templates for MAPE and drift detection |
+| **Metrics** | Prometheus | 16 custom metrics (`glowcast_*`): cost variance, uplift AUUC, drift, data quality, CUPED |
+| **Dashboards** | Grafana | 25 panels: cost analytics quality, uplift, CUPED variance reduction, drift, pipeline, API |
+| **Canary Deployment** | Istio + Flagger | Custom metric templates for cost accuracy and drift detection |
 | **Pipeline Orchestration** | Apache Airflow | 3 DAGs: training, experimentation (CUPED/mSPRT), monitoring (6-hourly) |
 
 ### Phase 3 — Enterprise Grade
@@ -430,8 +407,8 @@ GlowCast includes production-grade deployment infrastructure spanning three matu
 | **Access Control** | RBAC Middleware | 3 roles (Viewer/Analyst/Admin), 5 permissions |
 | **Audit Trail** | Audit Logger | NDJSON file + in-memory buffer, structured logging |
 | **Load Testing** | k6 | 3 scenarios (sustained/ramp/spike), P95 < 500ms |
-| **SLO** | YAML definitions | 8 SLOs: availability 99.9%, MAPE < 15%, AUUC > 0.70, data quality > 95% |
-| **Data Quality** | Great Expectations | sales_data (14) + product_data (13) + social_signals (12) expectations |
+| **SLO** | YAML definitions | 8 SLOs: availability 99.9%, cost gap detection > 90%, AUUC > 0.70, data quality > 95% |
+| **Data Quality** | Great Expectations | cost_transactions (14) + product_data (13) + supplier_data (12) expectations |
 
 ### Quick Start — Local Infrastructure
 
@@ -478,10 +455,16 @@ terraform init && terraform plan && terraform apply
 
 ---
 
+## License
+
+MIT
+
+---
+
 <div align="center">
 
-**MAPE 11.8% · CUPED −55% · X-Learner AUUC 0.74 · Shelf-Life FIFO**
+**DoWhy Causal · CUPED -55% · X-Learner AUUC 0.74 · Should-Cost BOM**
 
-*Built with statistical rigor. Designed for beauty supply chain intelligence.*
+*Built with statistical rigor. Designed for cost & commercial intelligence.*
 
 </div>

@@ -16,12 +16,12 @@ Usage
     from app.sql.executor import SQLPipelineExecutor
 
     tables = {
-        "dim_product":    dim_product_df,
-        "dim_location":   dim_location_df,
-        "fact_sales":     fact_sales_df,
-        "fact_inventory": fact_inventory_df,
-        "fact_social":    fact_social_df,
-        "fact_fulfillment": fact_fulfillment_df,
+        "dim_product":              dim_product_df,
+        "dim_plant":                dim_plant_df,
+        "dim_supplier":             dim_supplier_df,
+        "fact_cost_transactions":    fact_cost_transactions_df,
+        "fact_purchase_orders":      fact_purchase_orders_df,
+        "fact_quality_events":       fact_quality_events_df,
     }
     executor = SQLPipelineExecutor(tables)
     executor.load_tables()
@@ -52,7 +52,6 @@ PIPELINE_FILES: tuple[str, ...] = (
     "scrap_risk.sql",
     "cross_zone_penalty.sql",
     "demand_anomaly.sql",
-    "social_lead_lag.sql",
 )
 
 

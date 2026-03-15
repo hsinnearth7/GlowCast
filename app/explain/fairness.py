@@ -1,7 +1,7 @@
 """Fairness evaluation module for GlowCast.
 
-Provides sliced-evaluation tooling to detect systematic forecast bias across
-fulfillment centers (FCs), SKU categories, and arbitrary user-defined segments.
+Provides sliced-evaluation tooling to detect systematic cost-model bias across
+plants, SKU categories, and arbitrary user-defined segments.
 
 Class
 -----
@@ -13,7 +13,7 @@ FairnessAnalyzer
     Target results for GlowCast v2.1.0 (LightGBM + Chronos-2 Routing
     Ensemble, 5 000 SKUs, 12 FCs):
     - Kruskal-Wallis: H = 2.31, p = 0.51  → no significant MAPE difference
-      across fulfillment centers at the 5 % level.
+      across plants at the 5 % level.
     - Chi-squared:    chi2 = 8.7, p = 0.12 → no significant per-category
       forecast bias at the 5 % level.
 
@@ -131,7 +131,7 @@ class FairnessAnalyzer:
 
     Measures per-group MAPE with bootstrap confidence intervals and applies
     standard statistical tests to detect systematic differences across
-    fulfillment centers and SKU categories.
+    plants and SKU categories.
 
     Parameters
     ----------
@@ -327,8 +327,8 @@ class FairnessAnalyzer:
         Parameters
         ----------
         category_labels:
-            Array of category identifiers (e.g., ``"skincare"``,
-            ``"haircare"``), shape ``(n,)``.  Must be aligned with ``y_true``
+            Array of category identifiers (e.g., ``"RawMaterials"``,
+            ``"Components"``), shape ``(n,)``.  Must be aligned with ``y_true``
             and ``y_pred``.
         n_error_bins:
             Number of quantile bins used to discretise APE (default 4,

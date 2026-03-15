@@ -1,77 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
 [project]
 name = "glowcast"
-version = "1.0.0"
-description = "Beauty & skincare supply chain AI platform — demand forecasting, causal inference, A/B testing, and MLOps for 5,000 SKUs across 12 fulfillment centers."
+version = "2.0.0"
+description = "Cost & Commercial Analytics platform — should-cost modeling, OCOGS tracking, causal inference (DoWhy), A/B testing (CUPED), make-vs-buy analysis, and price elasticity."
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.11"
-license = "MIT"
 dependencies = [
-    # Core data
-    "pandas>=2.2.0",
-    "numpy>=1.26.0",
-    "scipy>=1.12.0",
-    "scikit-learn>=1.4.0",
-    "pandera>=0.18.0",
-    # Forecasting
-    "lightgbm>=4.0.0",
-    "xgboost>=2.0.0",
-    # Config & logging
-    "structlog>=23.0.0",
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
+    "pandera>=0.17",
+    "structlog>=23.1",
     "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "hypothesis>=6.0.0",
-    "ruff>=0.3.0",
-    "mypy>=1.8.0",
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "hypothesis>=6.82",
+    "ruff>=0.1",
+    "mypy>=1.5",
 ]
-forecast = [
-    "statsforecast>=1.7.0",
-    "hierarchicalforecast>=0.4.0",
+api = [
+    "fastapi>=0.104",
+    "uvicorn>=0.24",
 ]
 mlops = [
-    "evidently>=0.4.0",
-    "mlflow>=2.10.0",
+    "evidently>=0.4",
+    "mlflow>=2.8",
 ]
 causal = [
-    "dowhy>=0.11.0",
-    "causalml>=0.15.0",
-    "econml>=0.15.0",
+    "dowhy>=0.11",
+    "causalml>=0.15",
+    "econml>=0.15",
 ]
 explain = [
-    "shap>=0.45.0",
-    "lime>=0.2.0",
+    "shap>=0.43",
+    "lime>=0.2",
 ]
-chronos = ["chronos-forecasting>=1.3.0"]
-all = [
-    "glowcast[forecast,mlops,causal,explain,chronos]",
+dashboard = [
+    "streamlit>=1.28",
+    "plotly>=5.18",
 ]
-
-[tool.setuptools.packages.find]
-include = ["app*"]
-
-[build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 line-length = 130
 target-version = "py311"
-
-[tool.ruff.lint]
 select = ["E", "F", "W", "I", "S", "B"]
-ignore = ["S101", "S603", "S607", "B008", "E402", "S311", "B905", "B007", "I001"]
+ignore = ["S101", "S301", "S311"]
 
 [tool.mypy]
 python_version = "3.11"
-warn_return_any = false
 ignore_missing_imports = true
-disable_error_code = ["valid-type", "no-any-return", "attr-defined", "union-attr", "arg-type"]
-
-[[tool.mypy.overrides]]
-module = ["app.data.*", "app.causal.*", "app.forecasting.*"]
-ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

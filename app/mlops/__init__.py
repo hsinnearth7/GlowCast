@@ -1,7 +1,7 @@
 """GlowCast MLOps module — Level 2 production tooling.
 
-Provides the full MLOps lifecycle for the GlowCast beauty & skincare
-supply chain forecasting platform:
+Provides the full MLOps lifecycle for the GlowCast cost & commercial
+analytics platform:
 
 Components
 ----------

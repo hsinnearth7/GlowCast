@@ -5,11 +5,10 @@ queries over in-memory SQLite databases loaded from pandas DataFrames.
 
 Pipeline modules
 ----------------
-dos_woc          : Dynamic Days of Supply / Weeks of Coverage
-scrap_risk        : FIFO shelf-life scrap risk matrix
-cross_zone_penalty: Cross-zone fulfillment penalty analysis
-demand_anomaly    : Rolling Z-score demand anomaly detection
-social_lead_lag   : Social signal cross-correlation lead/lag analysis
+dos_woc            : Cost Variance Analysis (Plant × Category)
+scrap_risk         : Should-Cost Gap Analysis
+cross_zone_penalty : Supplier Performance Analysis
+demand_anomaly     : Cost Anomaly Detection (Z-score)
 """
 
 from app.sql.executor import SQLPipelineExecutor

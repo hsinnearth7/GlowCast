@@ -1,7 +1,9 @@
-"""GlowCast Dashboard — Beauty Supply Chain Intelligence Platform.
+"""GlowCast Streamlit dashboard — Cost & Commercial Analytics.
 
-Launch: streamlit run app/dashboard/app.py
+Launch:  streamlit run app/dashboard/dashboard.py
 """
+
+from __future__ import annotations
 
 import sys
 import os
@@ -12,188 +14,98 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 import streamlit as st
-from app.dashboard.views import overview, forecasting, supply_chain, causal, mlops
 
 st.set_page_config(
-    page_title="GlowCast Dashboard",
-    page_icon="",
+    page_title="GlowCast — Cost & Commercial Analytics",
+    page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# -- Custom CSS for premium look --
+# ── Custom CSS ────────────────────────────────────────────────────────────
+
 st.markdown("""
 <style>
-    /* ── Base dark theme ── */
-    .stApp { background-color: #0e1117; color: #ecf0f1; }
-
-    /* ── Global text: force all Streamlit text to light ── */
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
-        color: #ecf0f1 !important;
+    .main .block-container { padding-top: 1rem; max-width: 95%; }
+    .stApp { background-color: #0e1117; }
+    .metric-card {
+        background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+        border-radius: 12px; padding: 1.2rem; text-align: center;
+        border: 1px solid #3d3d5c; margin-bottom: 0.5rem;
     }
-    .stApp p, .stApp span, .stApp li, .stApp label, .stApp div {
-        color: #dce1e8;
+    .metric-card h3 { color: #8b8ba7; font-size: 0.85rem; margin: 0; }
+    .metric-card h1 { color: #e0e0ff; font-size: 1.8rem; margin: 0.3rem 0; }
+    .metric-card p  { color: #6b6b8d; font-size: 0.75rem; margin: 0; }
+    .badge {
+        display: inline-block; padding: 0.2rem 0.6rem; border-radius: 8px;
+        font-size: 0.75rem; font-weight: 600;
     }
-    .stApp .stMarkdown, .stApp .stMarkdown p, .stApp .stMarkdown li,
-    .stApp .stMarkdown strong, .stApp .stMarkdown b {
-        color: #ecf0f1 !important;
-    }
-    .stApp [data-testid="stCaptionContainer"],
-    .stApp [data-testid="stCaptionContainer"] p {
-        color: #a0aec0 !important;
-    }
-
-    /* ── Sidebar ── */
-    [data-testid="stSidebar"] {
-        background-color: #111827;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h4 {
-        color: #f0f4f8 !important;
-    }
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] li, [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] .stMarkdown p {
-        color: #cbd5e1 !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
-        color: #94a3b8 !important;
-    }
-    [data-testid="stSidebar"] hr { border-color: #2d3348; }
-
-    /* ── Tabs ── */
+    .badge-green  { background: #1a3a2a; color: #4ade80; }
+    .badge-yellow { background: #3a3a1a; color: #facc15; }
+    .badge-red    { background: #3a1a1a; color: #f87171; }
+    .badge-blue   { background: #1a2a3a; color: #60a5fa; }
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0;
-        padding: 8px 20px;
-        color: #94a3b8 !important;
+        background-color: #1e1e2e; border-radius: 8px;
+        color: #8b8ba7; padding: 0.5rem 1rem;
     }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #ecf0f1 !important;
+    .stTabs [aria-selected="true"] {
+        background-color: #3d3d5c !important; color: #e0e0ff !important;
     }
-    .stTabs [data-baseweb="tab-highlight"] {
-        background-color: #3498db !important;
-    }
-
-    /* ── Multiselect / Select / Input labels ── */
-    .stApp .stMultiSelect label, .stApp .stSelectbox label,
-    .stApp .stTextInput label, .stApp .stNumberInput label,
-    .stApp .stSlider label {
-        color: #cbd5e1 !important;
-    }
-    .stApp [data-baseweb="tag"] span { color: #fff !important; }
-    .stApp [data-baseweb="select"] [data-testid="stMarkdownContainer"] p {
-        color: #ecf0f1 !important;
-    }
-
-    /* ── Metric cards ── */
-    .metric-card {
-        background: linear-gradient(135deg, #1a1f2e 0%, #16192b 100%);
-        border: 1px solid #2d3348;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(52, 152, 219, 0.15);
-    }
-    .metric-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin: 4px 0;
-        line-height: 1.1;
-    }
-    .metric-label {
-        font-size: 0.85rem;
-        color: #a0aec0 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .metric-delta {
-        font-size: 0.9rem;
-        margin-top: 4px;
-    }
-    .delta-good { color: #2ecc71 !important; }
-    .delta-bad { color: #e74c3c !important; }
-    .delta-neutral { color: #f39c12 !important; }
-
-    /* ── Section headers ── */
-    .section-header {
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: #ecf0f1 !important;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 8px;
-        margin: 30px 0 20px 0;
-    }
-
-    /* ── Badges ── */
-    .badge {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .badge-green { background: #27ae60; color: white !important; }
-    .badge-red { background: #e74c3c; color: white !important; }
-    .badge-yellow { background: #f39c12; color: white !important; }
-    .badge-blue { background: #3498db; color: white !important; }
-
-    /* ── Dividers ── */
-    .stApp hr { border-color: #2d3348 !important; }
-
-    /* ── Hide Streamlit branding ── */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 
-def metric_card(label, value, delta=None, delta_type="good", color="#3498db"):
+def metric_card(title: str, value: str, subtitle: str = "") -> str:
     """Render a styled metric card."""
-    delta_html = ""
-    if delta:
-        css_class = f"delta-{delta_type}"
-        delta_html = f'<div class="metric-delta {css_class}">{delta}</div>'
     return f"""
     <div class="metric-card">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value" style="color: {color};">{value}</div>
-        {delta_html}
+        <h3>{title}</h3>
+        <h1>{value}</h1>
+        <p>{subtitle}</p>
     </div>
     """
 
 
-# -- Navigation --
-PAGE_OPTIONS = [
-    "Executive Overview",
-    "Demand & Forecasting",
-    "Inventory & Supply Chain",
-    "Causal & Experimentation",
-    "MLOps & Quality",
-]
+# ── Sidebar ───────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## GlowCast")
-    st.caption("Beauty Supply Chain Intelligence")
-    st.divider()
-    page_idx = 0
-    for i, name in enumerate(PAGE_OPTIONS):
-        if st.button(name, key=f"nav_{i}", use_container_width=True,
-                     type="primary" if st.session_state.get("current_page", 0) == i else "secondary"):
-            st.session_state["current_page"] = i
-            page_idx = i
-    st.divider()
-    st.markdown("**Platform Stats**")
-    st.markdown("- 5,000 SKUs | 12 FCs | 5 Countries")
-    st.markdown("- 6 Forecast Models | 4 Uplift Learners")
-    st.markdown("- 120+ Tests | 85%+ Coverage")
+    st.title("GlowCast")
+    st.caption("Cost & Commercial Analytics")
+    st.markdown("---")
 
-page_idx = st.session_state.get("current_page", 0)
+    pages = [
+        "Executive Overview",
+        "Should-Cost & OCOGS",
+        "Cost Reduction & Make-vs-Buy",
+        "Causal & Experimentation",
+        "MLOps & Quality",
+    ]
+    page = st.radio("Navigation", pages, label_visibility="collapsed")
 
-# -- Page Router --
-RENDERERS = [overview.render, forecasting.render, supply_chain.render, causal.render, mlops.render]
-RENDERERS[page_idx](metric_card)
+    st.markdown("---")
+    st.markdown("**500 SKUs** | **12 Plants** | **5 Suppliers**")
+    st.markdown("**5 Commodities** | **1,095 days**")
+    st.caption("v2.0 — Cost & Commercial Analytics")
+
+# ── Page router ──────────────────────────────────────────────────────────
+
+if page == "Executive Overview":
+    from app.dashboard.views.overview import render
+    render(metric_card)
+
+elif page == "Should-Cost & OCOGS":
+    from app.dashboard.views.cost_analytics import render
+    render(metric_card)
+
+elif page == "Cost Reduction & Make-vs-Buy":
+    from app.dashboard.views.cost_operations import render
+    render(metric_card)
+
+elif page == "Causal & Experimentation":
+    from app.dashboard.views.causal import render
+    render(metric_card)
+
+elif page == "MLOps & Quality":
+    from app.dashboard.views.mlops import render
+    render(metric_card)

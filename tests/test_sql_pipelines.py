@@ -11,13 +11,11 @@ class TestSQLPipelineExecutor:
     def executor(self, small_tables):
         tables = {
             "dim_product": small_tables["dim_product"],
-            "dim_location": small_tables["dim_location"],
-            "dim_weather": small_tables["dim_weather"],
-            "fact_sales": small_tables["fact_sales"],
-            "fact_inventory": small_tables["fact_inventory"],
-            "fact_social": small_tables["fact_social"],
-            "fact_fulfillment": small_tables["fact_fulfillment"],
-            "fact_reviews": small_tables["fact_reviews"],
+            "dim_plant": small_tables["dim_plant"],
+            "dim_supplier": small_tables["dim_supplier"],
+            "fact_cost_transactions": small_tables["fact_cost_transactions"],
+            "fact_purchase_orders": small_tables["fact_purchase_orders"],
+            "fact_quality_events": small_tables["fact_quality_events"],
         }
         # Filter out any None values (some tables may not be generated)
         # Limit rows per table so SQLite stays within the 999-variable limit
@@ -36,32 +34,28 @@ class TestSQLPipelineExecutor:
     def test_tables_loaded(self, executor):
         names = executor.table_names()
         assert "dim_product" in names
-        assert "fact_sales" in names
+        assert "fact_cost_transactions" in names
 
     def test_row_counts_positive(self, executor):
         counts = executor.row_counts()
         for table, count in counts.items():
             assert count > 0, f"{table} has 0 rows"
 
-    def test_dos_woc_pipeline(self, executor):
+    def test_cost_variance_pipeline(self, executor):
         result = executor.run_pipeline("dos_woc.sql")
         assert isinstance(result, pd.DataFrame)
         assert len(result) >= 0  # may be empty for small data
 
-    def test_scrap_risk_pipeline(self, executor):
+    def test_should_cost_gap_pipeline(self, executor):
         result = executor.run_pipeline("scrap_risk.sql")
         assert isinstance(result, pd.DataFrame)
 
-    def test_cross_zone_pipeline(self, executor):
+    def test_supplier_performance_pipeline(self, executor):
         result = executor.run_pipeline("cross_zone_penalty.sql")
         assert isinstance(result, pd.DataFrame)
 
-    def test_demand_anomaly_pipeline(self, executor):
+    def test_cost_anomaly_pipeline(self, executor):
         result = executor.run_pipeline("demand_anomaly.sql")
-        assert isinstance(result, pd.DataFrame)
-
-    def test_social_lead_lag_pipeline(self, executor):
-        result = executor.run_pipeline("social_lead_lag.sql")
         assert isinstance(result, pd.DataFrame)
 
     def test_run_all_pipelines(self, executor):
@@ -86,3 +80,4 @@ class TestSQLPipelineExecutor:
             exc.load_tables()
             names = exc.table_names()
             assert "dim_product" in names
+

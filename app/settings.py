@@ -57,17 +57,17 @@ def get_segment_config() -> dict[str, Any]:
     return load_config().get("segments", {})
 
 
-def get_model_config(model_name: str | None = None) -> dict[str, Any]:
-    """Get model configuration, optionally for a specific model."""
-    model_cfg = load_config().get("model", {})
-    if model_name:
-        return model_cfg.get(model_name, {})
-    return model_cfg
+def get_cost_config(section: str | None = None) -> dict[str, Any]:
+    """Get cost analytics configuration, optionally for a specific section."""
+    cost_cfg = load_config().get("cost", {})
+    if section:
+        return cost_cfg.get(section, {})
+    return cost_cfg
 
 
-def get_eval_config() -> dict[str, Any]:
-    """Get evaluation configuration."""
-    return load_config().get("evaluation", {})
+def get_pricing_config() -> dict[str, Any]:
+    """Get pricing / elasticity configuration."""
+    return load_config().get("pricing", {})
 
 
 def get_experimentation_config() -> dict[str, Any]:

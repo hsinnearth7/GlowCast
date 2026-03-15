@@ -1,12 +1,11 @@
-"""Product taxonomy and segment gene definitions for GlowCast.
+"""Product taxonomy and cost segment definitions for GlowCast.
 
-Domain model: Concern × Texture → 10 demand-behavior segments.
-Each segment encodes supply chain genetics: demand shape, seasonality,
-social sensitivity, shelf-life constraints, and replenishment parameters.
+Domain model: Category × Cost Tier → 10 cost-behavior segments.
+Each segment encodes cost genetics: base unit cost, volatility,
+commodity sensitivity, labor intensity, and overhead allocation.
 
 References:
-    - v5.0 domain design (Section 3.3)
-    - beauty_product_archetype_research.md (price research)
+    - v4.0 portfolio spec (Cost & Commercial Analytics)
 """
 
 from __future__ import annotations
@@ -15,276 +14,248 @@ import numpy as np
 
 # ── Primary axes ──────────────────────────────────────────────────────────
 
-CONCERNS = ["AntiAging", "Acne", "Hydrating", "Brightening", "SunProtection"]
-TEXTURES = ["Lightweight", "Rich"]
+CATEGORIES = ["RawMaterials", "Components", "Packaging", "Labor", "Overhead"]
+COST_TIERS = ["Direct", "Indirect"]
 
-# ── Price tiers ───────────────────────────────────────────────────────────
+# ── Commodity groups ─────────────────────────────────────────────────────
 
-PRICE_TIERS = ["Mass", "Prestige", "Luxury"]
+COMMODITIES = ["Steel", "Copper", "Resin", "Aluminum", "Silicon"]
 
-PRICE_TIER_PARAMS = {
-    "Mass":     {"range": (5, 25),   "cogs_pct": (0.30, 0.40), "margin": (0.50, 0.60)},
-    "Prestige": {"range": (25, 80),  "cogs_pct": (0.20, 0.30), "margin": (0.65, 0.75)},
-    "Luxury":   {"range": (80, 280), "cogs_pct": (0.10, 0.15), "margin": (0.74, 0.82)},
+COMMODITY_BASE_PRICES = {
+    "Steel": 850.0,       # $/ton
+    "Copper": 8500.0,     # $/ton
+    "Resin": 1200.0,      # $/ton
+    "Aluminum": 2400.0,   # $/ton
+    "Silicon": 3200.0,    # $/ton
 }
 
-# ── Brands ────────────────────────────────────────────────────────────────
+# ── Suppliers ────────────────────────────────────────────────────────────
 
-BRANDS = ["LuxeVita", "SolGuard", "GlowRush", "PureBasics", "VelvetAura"]
+SUPPLIERS = ["SupplierAlpha", "SupplierBeta", "SupplierGamma", "SupplierDelta", "SupplierEpsilon"]
 
-BRAND_CONCERN_WEIGHTS = {
-    "LuxeVita":   {"AntiAging": 0.50, "Hydrating": 0.20, "Brightening": 0.15, "SunProtection": 0.10, "Acne": 0.05},
-    "SolGuard":   {"SunProtection": 0.45, "Acne": 0.25, "Hydrating": 0.15, "Brightening": 0.10, "AntiAging": 0.05},
-    "GlowRush":   {"Acne": 0.30, "Brightening": 0.30, "Hydrating": 0.20, "SunProtection": 0.15, "AntiAging": 0.05},
-    "PureBasics": {"Hydrating": 0.45, "Acne": 0.20, "SunProtection": 0.20, "Brightening": 0.10, "AntiAging": 0.05},
-    "VelvetAura": {"AntiAging": 0.35, "Brightening": 0.25, "Hydrating": 0.20, "SunProtection": 0.10, "Acne": 0.10},
+SUPPLIER_PROFILES = {
+    "SupplierAlpha":   {"country": "CN", "quality_score": 0.92, "on_time_pct": 0.95, "lead_time_days": 14, "price_premium": 0.00},
+    "SupplierBeta":    {"country": "TW", "quality_score": 0.96, "on_time_pct": 0.98, "lead_time_days": 10, "price_premium": 0.08},
+    "SupplierGamma":   {"country": "DE", "quality_score": 0.98, "on_time_pct": 0.97, "lead_time_days": 7,  "price_premium": 0.15},
+    "SupplierDelta":   {"country": "US", "quality_score": 0.94, "on_time_pct": 0.93, "lead_time_days": 5,  "price_premium": 0.12},
+    "SupplierEpsilon": {"country": "IN", "quality_score": 0.88, "on_time_pct": 0.90, "lead_time_days": 21, "price_premium": -0.05},
 }
 
-# ── Segment Genes (10 segments) ──────────────────────────────────────────
+# ── Segment Genes (10 segments: 5 categories × 2 cost tiers) ────────────
 
 SEGMENT_GENES = {
-    ("AntiAging", "Lightweight"): {
+    ("RawMaterials", "Direct"): {
+        "sku_count": 25,
+        "subcategories": ["Sheet Metal", "Polymer Pellets", "Wire Stock", "Chemical Compounds"],
+        "base_unit_cost": 12.50,
+        "cost_volatility": 0.25,
+        "commodity_sensitivity": 0.80,
+        "labor_intensity": 0.10,
+        "overhead_allocation": 0.05,
+        "seasonal_amplitude": 0.15,
+        "seasonal_direction": "q4_peak",
+        "tariff_exposure": 0.12,
+        "quality_rejection_rate": 0.02,
+        "moq": 1000,
+    },
+    ("RawMaterials", "Indirect"): {
         "sku_count": 15,
-        "subcategories": ["Firming Gel Serum", "Light Repair Essence", "Anti-Wrinkle Ampoule"],
-        "base_demand_lambda": 6,
-        "price_elasticity": -0.5,
+        "subcategories": ["Cleaning Solvents", "Lubricants", "Safety Supplies"],
+        "base_unit_cost": 5.00,
+        "cost_volatility": 0.10,
+        "commodity_sensitivity": 0.30,
+        "labor_intensity": 0.05,
+        "overhead_allocation": 0.15,
         "seasonal_amplitude": 0.05,
-        "seasonal_direction": "neutral",
-        "social_sensitivity": 0.15,
-        "return_rate": 0.025,
-        "shelf_life_days": 730,
-        "replenish_cycle": (60, 90),
-        "trend_annual_pct": 0.03,
+        "seasonal_direction": "flat",
+        "tariff_exposure": 0.05,
+        "quality_rejection_rate": 0.01,
+        "moq": 500,
     },
-    ("AntiAging", "Rich"): {
-        "sku_count": 25,
-        "subcategories": ["Intensive Night Cream", "Rejuvenating Eye Balm", "Ultra Repair Concentrate"],
-        "base_demand_lambda": 4,
-        "price_elasticity": -0.4,
-        "seasonal_amplitude": 0.10,
-        "seasonal_direction": "winter",
-        "social_sensitivity": 0.08,
-        "return_rate": 0.020,
-        "shelf_life_days": 730,
-        "replenish_cycle": (90, 120),
-        "trend_annual_pct": 0.03,
+    ("Components", "Direct"): {
+        "sku_count": 30,
+        "subcategories": ["PCB Assemblies", "Connectors", "Sensors", "Motor Units", "Display Modules"],
+        "base_unit_cost": 45.00,
+        "cost_volatility": 0.18,
+        "commodity_sensitivity": 0.60,
+        "labor_intensity": 0.30,
+        "overhead_allocation": 0.10,
+        "seasonal_amplitude": 0.20,
+        "seasonal_direction": "q3_peak",
+        "tariff_exposure": 0.18,
+        "quality_rejection_rate": 0.03,
+        "moq": 200,
     },
-    ("Acne", "Lightweight"): {
-        "sku_count": 25,
-        "subcategories": ["Oil Control Gel", "Salicylic Acid Toner", "Clear Skin Serum", "Mattifying Fluid"],
-        "base_demand_lambda": 14,
-        "price_elasticity": -2.0,
-        "seasonal_amplitude": 0.30,
-        "seasonal_direction": "summer",
-        "social_sensitivity": 0.70,
-        "return_rate": 0.035,
-        "shelf_life_days": 540,
-        "replenish_cycle": (45, 75),
-        "trend_annual_pct": 0.02,
-    },
-    ("Acne", "Rich"): {
+    ("Components", "Indirect"): {
         "sku_count": 10,
-        "subcategories": ["Post-Acne Repair Cream", "Gentle Cleansing Balm"],
-        "base_demand_lambda": 8,
-        "price_elasticity": -1.5,
-        "seasonal_amplitude": 0.15,
-        "seasonal_direction": "neutral",
-        "social_sensitivity": 0.40,
-        "return_rate": 0.030,
-        "shelf_life_days": 730,
-        "replenish_cycle": (60, 90),
-        "trend_annual_pct": 0.01,
+        "subcategories": ["Test Fixtures", "Calibration Tools"],
+        "base_unit_cost": 120.00,
+        "cost_volatility": 0.08,
+        "commodity_sensitivity": 0.20,
+        "labor_intensity": 0.15,
+        "overhead_allocation": 0.25,
+        "seasonal_amplitude": 0.05,
+        "seasonal_direction": "flat",
+        "tariff_exposure": 0.10,
+        "quality_rejection_rate": 0.005,
+        "moq": 50,
     },
-    ("Hydrating", "Lightweight"): {
+    ("Packaging", "Direct"): {
         "sku_count": 20,
-        "subcategories": ["Water Gel Moisturizer", "Hydra Mist Spray", "Cooling Gel Mask", "Aqua Toner"],
-        "base_demand_lambda": 16,
-        "price_elasticity": -1.5,
-        "seasonal_amplitude": 0.40,
-        "seasonal_direction": "summer",
-        "social_sensitivity": 0.25,
-        "return_rate": 0.020,
-        "shelf_life_days": 730,
-        "replenish_cycle": (45, 75),
-        "trend_annual_pct": 0.04,
-    },
-    ("Hydrating", "Rich"): {
-        "sku_count": 25,
-        "subcategories": ["Barrier Repair Cream", "Rich Night Balm", "Hand & Lip Treatment", "Sleeping Mask"],
-        "base_demand_lambda": 15,
-        "price_elasticity": -1.2,
-        "seasonal_amplitude": 0.45,
-        "seasonal_direction": "winter",
-        "social_sensitivity": 0.15,
-        "return_rate": 0.018,
-        "shelf_life_days": 910,
-        "replenish_cycle": (60, 90),
-        "trend_annual_pct": 0.02,
-    },
-    ("Brightening", "Lightweight"): {
-        "sku_count": 15,
-        "subcategories": ["Vitamin C Serum", "Brightening Essence Water", "Dark Spot Ampoule"],
-        "base_demand_lambda": 10,
-        "price_elasticity": -0.9,
+        "subcategories": ["Corrugated Boxes", "Blister Packs", "Foam Inserts", "Shrink Wrap"],
+        "base_unit_cost": 2.80,
+        "cost_volatility": 0.12,
+        "commodity_sensitivity": 0.50,
+        "labor_intensity": 0.15,
+        "overhead_allocation": 0.08,
         "seasonal_amplitude": 0.30,
-        "seasonal_direction": "spring",
-        "social_sensitivity": 0.50,
-        "return_rate": 0.035,
-        "shelf_life_days": 450,
-        "replenish_cycle": (60, 90),
-        "trend_annual_pct": 0.06,
+        "seasonal_direction": "q4_peak",
+        "tariff_exposure": 0.08,
+        "quality_rejection_rate": 0.015,
+        "moq": 5000,
     },
-    ("Brightening", "Rich"): {
-        "sku_count": 15,
-        "subcategories": ["Whitening Night Cream", "Radiance Eye Cream", "Glow Repair Mask"],
-        "base_demand_lambda": 7,
-        "price_elasticity": -0.7,
-        "seasonal_amplitude": 0.15,
-        "seasonal_direction": "neutral",
-        "social_sensitivity": 0.30,
-        "return_rate": 0.030,
-        "shelf_life_days": 730,
-        "replenish_cycle": (75, 120),
-        "trend_annual_pct": 0.04,
+    ("Packaging", "Indirect"): {
+        "sku_count": 10,
+        "subcategories": ["Labels", "Desiccants", "Pallet Wrap"],
+        "base_unit_cost": 0.50,
+        "cost_volatility": 0.06,
+        "commodity_sensitivity": 0.20,
+        "labor_intensity": 0.05,
+        "overhead_allocation": 0.10,
+        "seasonal_amplitude": 0.10,
+        "seasonal_direction": "flat",
+        "tariff_exposure": 0.03,
+        "quality_rejection_rate": 0.005,
+        "moq": 10000,
     },
-    ("SunProtection", "Lightweight"): {
+    ("Labor", "Direct"): {
         "sku_count": 20,
-        "subcategories": ["UV Aqua Gel SPF50", "Sport Sunscreen Spray", "Mineral Sun Fluid", "Daily UV Shield"],
-        "base_demand_lambda": 12,
-        "price_elasticity": -0.6,
-        "seasonal_amplitude": 0.90,
-        "seasonal_direction": "summer",
-        "social_sensitivity": 0.65,
-        "return_rate": 0.025,
-        "shelf_life_days": 540,
-        "replenish_cycle": (30, 45),
-        "trend_annual_pct": 0.05,
+        "subcategories": ["Assembly Line", "Welding", "Quality Inspection", "Machine Operation"],
+        "base_unit_cost": 28.00,
+        "cost_volatility": 0.08,
+        "commodity_sensitivity": 0.05,
+        "labor_intensity": 0.90,
+        "overhead_allocation": 0.15,
+        "seasonal_amplitude": 0.10,
+        "seasonal_direction": "q4_peak",
+        "tariff_exposure": 0.00,
+        "quality_rejection_rate": 0.04,
+        "moq": 1,
     },
-    ("SunProtection", "Rich"): {
-        "sku_count": 5,
-        "subcategories": ["Moisturizing Sun Cream SPF30"],
-        "base_demand_lambda": 5,
-        "price_elasticity": -0.5,
-        "seasonal_amplitude": 0.60,
-        "seasonal_direction": "summer",
-        "social_sensitivity": 0.30,
-        "return_rate": 0.020,
-        "shelf_life_days": 540,
-        "replenish_cycle": (45, 60),
-        "trend_annual_pct": 0.03,
+    ("Labor", "Indirect"): {
+        "sku_count": 15,
+        "subcategories": ["Maintenance", "Logistics", "Supervision"],
+        "base_unit_cost": 35.00,
+        "cost_volatility": 0.05,
+        "commodity_sensitivity": 0.02,
+        "labor_intensity": 0.85,
+        "overhead_allocation": 0.30,
+        "seasonal_amplitude": 0.05,
+        "seasonal_direction": "flat",
+        "tariff_exposure": 0.00,
+        "quality_rejection_rate": 0.01,
+        "moq": 1,
+    },
+    ("Overhead", "Direct"): {
+        "sku_count": 15,
+        "subcategories": ["Equipment Depreciation", "Tooling", "Energy Consumption"],
+        "base_unit_cost": 8.00,
+        "cost_volatility": 0.15,
+        "commodity_sensitivity": 0.40,
+        "labor_intensity": 0.10,
+        "overhead_allocation": 0.70,
+        "seasonal_amplitude": 0.20,
+        "seasonal_direction": "q1_peak",
+        "tariff_exposure": 0.05,
+        "quality_rejection_rate": 0.00,
+        "moq": 1,
+    },
+    ("Overhead", "Indirect"): {
+        "sku_count": 15,
+        "subcategories": ["Rent Allocation", "IT Systems", "Insurance"],
+        "base_unit_cost": 15.00,
+        "cost_volatility": 0.04,
+        "commodity_sensitivity": 0.10,
+        "labor_intensity": 0.05,
+        "overhead_allocation": 0.85,
+        "seasonal_amplitude": 0.03,
+        "seasonal_direction": "flat",
+        "tariff_exposure": 0.02,
+        "quality_rejection_rate": 0.00,
+        "moq": 1,
     },
 }
 
 # ── Direction → phase mapping ────────────────────────────────────────────
 
 DIRECTION_PHASE = {
-    "summer": 0.0,
-    "winter": np.pi,
-    "spring": -np.pi / 2,
-    "neutral": 0.0,
+    "q1_peak": -np.pi / 2,   # Peak in Q1 (January)
+    "q3_peak": np.pi / 2,    # Peak in Q3 (July)
+    "q4_peak": np.pi,         # Peak in Q4 (October)
+    "flat": 0.0,
 }
 
-# ── Social signal parameters ─────────────────────────────────────────────
+# ── Commodity price parameters ─────────────────────────────────────────
 
-CONCERN_PHASE = {
-    "AntiAging":      np.pi / 2,
-    "Acne":          -np.pi / 4,
-    "Hydrating":      0.0,
-    "Brightening":    np.pi / 3,
-    "SunProtection": -np.pi / 3,
+COMMODITY_VOLATILITY = {
+    "Steel": 0.15,
+    "Copper": 0.25,
+    "Resin": 0.20,
+    "Aluminum": 0.18,
+    "Silicon": 0.22,
 }
 
-CONCERN_BASE_VOL = {
-    "AntiAging": 400,
-    "Acne": 700,
-    "Hydrating": 600,
-    "Brightening": 500,
-    "SunProtection": 650,
+COMMODITY_SEASONAL_PHASE = {
+    "Steel": 0.0,
+    "Copper": np.pi / 3,
+    "Resin": -np.pi / 4,
+    "Aluminum": np.pi / 6,
+    "Silicon": np.pi / 2,
 }
 
-GLOBAL_SOURCES = ["Reddit", "TikTok", "Amazon_Reviews", "YouTube", "@cosme", "Sephora_Reviews", "Instagram"]
-SOURCE_WEIGHTS = [0.20, 0.25, 0.20, 0.10, 0.10, 0.08, 0.07]
+# ── Plant (Manufacturing) definitions ─────────────────────────────────
 
-# ── NLP aspect taxonomy ──────────────────────────────────────────────────
-
-BEAUTY_ASPECTS = {
-    "texture":       ["texture", "consistency", "smooth", "thick", "thin",
-                      "creamy", "watery", "gel", "lightweight", "sticky"],
-    "scent":         ["smell", "scent", "fragrance", "odor", "perfume",
-                      "aroma", "unscented", "stinky"],
-    "packaging":     ["bottle", "pump", "tube", "packaging", "container",
-                      "cap", "dispenser", "leak", "broken"],
-    "efficacy":      ["effective", "works", "results", "improvement",
-                      "difference", "before and after", "useless"],
-    "ingredients":   ["ingredients", "chemical", "natural", "organic",
-                      "paraben", "sulfate", "retinol", "hyaluronic"],
-    "skin_reaction": ["breakout", "irritation", "rash", "allergy",
-                      "burning", "redness", "sensitive", "acne"],
-    "value":         ["price", "expensive", "cheap", "worth", "value",
-                      "affordable", "overpriced"],
-    "shelf_life":    ["expired", "shelf life", "spoil", "old", "fresh",
-                      "expiration", "rancid"],
+PLANT_DEFINITIONS = {
+    "PLT_Shenzhen":   {"country": "CN", "region": "Shenzhen",   "lat": 22.543, "lon": 114.058, "labor_rate": 8.50,  "overhead_rate": 0.25, "capacity_util": 0.88},
+    "PLT_Shanghai":   {"country": "CN", "region": "Shanghai",   "lat": 31.230, "lon": 121.474, "labor_rate": 10.00, "overhead_rate": 0.28, "capacity_util": 0.85},
+    "PLT_Taipei":     {"country": "TW", "region": "Taipei",     "lat": 25.033, "lon": 121.565, "labor_rate": 14.00, "overhead_rate": 0.30, "capacity_util": 0.82},
+    "PLT_Munich":     {"country": "DE", "region": "Munich",     "lat": 48.137, "lon": 11.576,  "labor_rate": 32.00, "overhead_rate": 0.40, "capacity_util": 0.78},
+    "PLT_Stuttgart":  {"country": "DE", "region": "Stuttgart",  "lat": 48.776, "lon": 9.183,   "labor_rate": 30.00, "overhead_rate": 0.38, "capacity_util": 0.80},
+    "PLT_Detroit":    {"country": "US", "region": "Detroit",    "lat": 42.331, "lon": -83.046, "labor_rate": 25.00, "overhead_rate": 0.35, "capacity_util": 0.75},
+    "PLT_Austin":     {"country": "US", "region": "Austin",     "lat": 30.267, "lon": -97.743, "labor_rate": 28.00, "overhead_rate": 0.32, "capacity_util": 0.83},
+    "PLT_Guadalajara":{"country": "MX", "region": "Guadalajara","lat": 20.659, "lon": -103.349,"labor_rate": 6.50,  "overhead_rate": 0.22, "capacity_util": 0.90},
+    "PLT_Pune":       {"country": "IN", "region": "Pune",       "lat": 18.520, "lon": 73.857,  "labor_rate": 4.50,  "overhead_rate": 0.20, "capacity_util": 0.87},
+    "PLT_Chennai":    {"country": "IN", "region": "Chennai",    "lat": 13.083, "lon": 80.270,  "labor_rate": 4.00,  "overhead_rate": 0.18, "capacity_util": 0.91},
+    "PLT_Tokyo":      {"country": "JP", "region": "Tokyo",      "lat": 35.682, "lon": 139.759, "labor_rate": 22.00, "overhead_rate": 0.35, "capacity_util": 0.79},
+    "PLT_Osaka":      {"country": "JP", "region": "Osaka",      "lat": 34.694, "lon": 135.502, "labor_rate": 20.00, "overhead_rate": 0.33, "capacity_util": 0.81},
 }
 
-# ── Fulfillment Center definitions ───────────────────────────────────────
-
-FC_DEFINITIONS = {
-    "FC_Phoenix":    {"country": "US", "region": "Phoenix",    "lat": 33.448, "lon": -112.074,
-                      "climate_zone": "Hot_Dry"},
-    "FC_Miami":      {"country": "US", "region": "Miami",      "lat": 25.762, "lon": -80.192,
-                      "climate_zone": "Hot_Humid"},
-    "FC_Seattle":    {"country": "US", "region": "Seattle",    "lat": 47.606, "lon": -122.332,
-                      "climate_zone": "Cool_Damp"},
-    "FC_Dallas":     {"country": "US", "region": "Dallas",     "lat": 32.777, "lon": -96.797,
-                      "climate_zone": "Humid_Subtropical"},
-    "FC_Berlin":     {"country": "DE", "region": "Berlin",     "lat": 52.520, "lon": 13.405,
-                      "climate_zone": "Cold_Continental"},
-    "FC_London":     {"country": "UK", "region": "London",     "lat": 51.507, "lon": -0.128,
-                      "climate_zone": "Mild_Oceanic"},
-    "FC_Manchester": {"country": "UK", "region": "Manchester", "lat": 53.483, "lon": -2.244,
-                      "climate_zone": "Cold_Damp"},
-    "FC_Tokyo":      {"country": "JP", "region": "Tokyo",      "lat": 35.682, "lon": 139.759,
-                      "climate_zone": "Humid_Subtropical"},
-    "FC_Osaka":      {"country": "JP", "region": "Osaka",      "lat": 34.694, "lon": 135.502,
-                      "climate_zone": "Humid_Subtropical"},
-    "FC_Mumbai":     {"country": "IN", "region": "Mumbai",     "lat": 19.076, "lon": 72.878,
-                      "climate_zone": "Tropical_Monsoon"},
-    "FC_Delhi":      {"country": "IN", "region": "Delhi",      "lat": 28.614, "lon": 77.209,
-                      "climate_zone": "Extreme_Swing"},
-    "FC_Bangalore":  {"country": "IN", "region": "Bangalore",  "lat": 12.972, "lon": 77.594,
-                      "climate_zone": "Tropical_Plateau"},
+PLANT_WEIGHTS = {
+    "PLT_Shenzhen": 0.15, "PLT_Shanghai": 0.10, "PLT_Taipei": 0.08,
+    "PLT_Munich": 0.06, "PLT_Stuttgart": 0.05, "PLT_Detroit": 0.07, "PLT_Austin": 0.08,
+    "PLT_Guadalajara": 0.10, "PLT_Pune": 0.10, "PLT_Chennai": 0.08,
+    "PLT_Tokyo": 0.07, "PLT_Osaka": 0.06,
 }
 
-FC_WEIGHTS = {
-    "FC_Phoenix": 0.12, "FC_Miami": 0.10, "FC_Seattle": 0.10, "FC_Dallas": 0.08,
-    "FC_Berlin": 0.08, "FC_London": 0.06, "FC_Manchester": 0.04,
-    "FC_Tokyo": 0.10, "FC_Osaka": 0.07,
-    "FC_Mumbai": 0.10, "FC_Delhi": 0.08, "FC_Bangalore": 0.07,
+# ── Cost reduction action types ─────────────────────────────────────────
+
+COST_REDUCTION_ACTIONS = [
+    "supplier_switch",
+    "design_change",
+    "volume_consolidation",
+    "process_optimization",
+    "material_substitution",
+    "nearshoring",
+    "automation",
+    "negotiate_contract",
+]
+
+# ── Make-vs-Buy thresholds ──────────────────────────────────────────────
+
+MAKE_VS_BUY_FACTORS = {
+    "volume_breakeven_multiplier": 1.15,   # Make is cheaper above this volume ratio
+    "quality_weight": 0.30,
+    "lead_time_weight": 0.20,
+    "cost_weight": 0.35,
+    "strategic_weight": 0.15,
 }
-
-# ── FC climate parameters ────────────────────────────────────────────────
-# Format: (base_temp_C, temp_amplitude, base_humidity_%, humidity_amplitude, temp_noise, humidity_noise)
-
-FC_CLIMATE_PARAMS = {
-    "Phoenix":    (25, 16, 30, 8,  2.0, 4),
-    "Miami":      (26, 7,  75, 8,  1.5, 5),
-    "Seattle":    (12, 9,  76, 6,  1.5, 4),
-    "Dallas":     (20, 14, 65, 10, 2.0, 5),
-    "Berlin":     (10, 12, 75, 8,  2.5, 5),
-    "London":     (11, 8,  78, 5,  1.5, 4),
-    "Manchester": (10, 7,  82, 4,  1.5, 3),
-    "Tokyo":      (16, 14, 65, 12, 2.0, 5),
-    "Osaka":      (17, 13, 65, 10, 1.8, 5),
-    "Mumbai":     (28, 4,  75, 12, 1.0, 6),
-    "Delhi":      (25, 18, 55, 20, 2.5, 8),
-    "Bangalore":  (25, 5,  60, 15, 1.0, 5),
-}
-
-# ── Temperature-Humidity Index ────────────────────────────────────────────
-
-TEMPERATURE_SWITCH_POINT = 23.5  # Celsius — above: Lightweight demand up; below: Rich demand up
-
-
-def compute_thi(temperature: float, humidity: float) -> float:
-    """Compute Temperature-Humidity Index (NWS Livestock Weather Safety Index, Celsius)."""
-    return temperature - 0.55 * (1 - humidity / 100) * (temperature - 14.5)

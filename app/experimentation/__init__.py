@@ -1,7 +1,7 @@
 """GlowCast experimentation framework.
 
 Provides a production-quality A/B testing and experimentation toolkit for the
-GlowCast beauty & skincare supply chain platform.
+GlowCast cost & commercial analytics platform.
 
 Modules
 -------

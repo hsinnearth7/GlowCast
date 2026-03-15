@@ -1,3 +1,3 @@
-"""GlowCast — Beauty & skincare supply chain AI platform."""
+"""GlowCast — Cost & Commercial Analytics platform."""
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
