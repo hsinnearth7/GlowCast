@@ -34,11 +34,26 @@ COMMODITY_BASE_PRICES = {
 SUPPLIERS = ["SupplierAlpha", "SupplierBeta", "SupplierGamma", "SupplierDelta", "SupplierEpsilon"]
 
 SUPPLIER_PROFILES = {
-    "SupplierAlpha":   {"country": "CN", "quality_score": 0.92, "on_time_pct": 0.95, "lead_time_days": 14, "price_premium": 0.00},
-    "SupplierBeta":    {"country": "TW", "quality_score": 0.96, "on_time_pct": 0.98, "lead_time_days": 10, "price_premium": 0.08},
-    "SupplierGamma":   {"country": "DE", "quality_score": 0.98, "on_time_pct": 0.97, "lead_time_days": 7,  "price_premium": 0.15},
-    "SupplierDelta":   {"country": "US", "quality_score": 0.94, "on_time_pct": 0.93, "lead_time_days": 5,  "price_premium": 0.12},
-    "SupplierEpsilon": {"country": "IN", "quality_score": 0.88, "on_time_pct": 0.90, "lead_time_days": 21, "price_premium": -0.05},
+    "SupplierAlpha": {
+        "country": "CN", "quality_score": 0.92, "on_time_pct": 0.95,
+        "lead_time_days": 14, "price_premium": 0.00,
+    },
+    "SupplierBeta": {
+        "country": "TW", "quality_score": 0.96, "on_time_pct": 0.98,
+        "lead_time_days": 10, "price_premium": 0.08,
+    },
+    "SupplierGamma": {
+        "country": "DE", "quality_score": 0.98, "on_time_pct": 0.97,
+        "lead_time_days": 7, "price_premium": 0.15,
+    },
+    "SupplierDelta": {
+        "country": "US", "quality_score": 0.94, "on_time_pct": 0.93,
+        "lead_time_days": 5, "price_premium": 0.12,
+    },
+    "SupplierEpsilon": {
+        "country": "IN", "quality_score": 0.88, "on_time_pct": 0.90,
+        "lead_time_days": 21, "price_premium": -0.05,
+    },
 }
 
 # ── Segment Genes (10 segments: 5 categories × 2 cost tiers) ────────────
@@ -216,18 +231,54 @@ COMMODITY_SEASONAL_PHASE = {
 # ── Plant (Manufacturing) definitions ─────────────────────────────────
 
 PLANT_DEFINITIONS = {
-    "PLT_Shenzhen":   {"country": "CN", "region": "Shenzhen",   "lat": 22.543, "lon": 114.058, "labor_rate": 8.50,  "overhead_rate": 0.25, "capacity_util": 0.88},
-    "PLT_Shanghai":   {"country": "CN", "region": "Shanghai",   "lat": 31.230, "lon": 121.474, "labor_rate": 10.00, "overhead_rate": 0.28, "capacity_util": 0.85},
-    "PLT_Taipei":     {"country": "TW", "region": "Taipei",     "lat": 25.033, "lon": 121.565, "labor_rate": 14.00, "overhead_rate": 0.30, "capacity_util": 0.82},
-    "PLT_Munich":     {"country": "DE", "region": "Munich",     "lat": 48.137, "lon": 11.576,  "labor_rate": 32.00, "overhead_rate": 0.40, "capacity_util": 0.78},
-    "PLT_Stuttgart":  {"country": "DE", "region": "Stuttgart",  "lat": 48.776, "lon": 9.183,   "labor_rate": 30.00, "overhead_rate": 0.38, "capacity_util": 0.80},
-    "PLT_Detroit":    {"country": "US", "region": "Detroit",    "lat": 42.331, "lon": -83.046, "labor_rate": 25.00, "overhead_rate": 0.35, "capacity_util": 0.75},
-    "PLT_Austin":     {"country": "US", "region": "Austin",     "lat": 30.267, "lon": -97.743, "labor_rate": 28.00, "overhead_rate": 0.32, "capacity_util": 0.83},
-    "PLT_Guadalajara":{"country": "MX", "region": "Guadalajara","lat": 20.659, "lon": -103.349,"labor_rate": 6.50,  "overhead_rate": 0.22, "capacity_util": 0.90},
-    "PLT_Pune":       {"country": "IN", "region": "Pune",       "lat": 18.520, "lon": 73.857,  "labor_rate": 4.50,  "overhead_rate": 0.20, "capacity_util": 0.87},
-    "PLT_Chennai":    {"country": "IN", "region": "Chennai",    "lat": 13.083, "lon": 80.270,  "labor_rate": 4.00,  "overhead_rate": 0.18, "capacity_util": 0.91},
-    "PLT_Tokyo":      {"country": "JP", "region": "Tokyo",      "lat": 35.682, "lon": 139.759, "labor_rate": 22.00, "overhead_rate": 0.35, "capacity_util": 0.79},
-    "PLT_Osaka":      {"country": "JP", "region": "Osaka",      "lat": 34.694, "lon": 135.502, "labor_rate": 20.00, "overhead_rate": 0.33, "capacity_util": 0.81},
+    "PLT_Shenzhen": {
+        "country": "CN", "region": "Shenzhen", "lat": 22.543, "lon": 114.058,
+        "labor_rate": 8.50, "overhead_rate": 0.25, "capacity_util": 0.88,
+    },
+    "PLT_Shanghai": {
+        "country": "CN", "region": "Shanghai", "lat": 31.230, "lon": 121.474,
+        "labor_rate": 10.00, "overhead_rate": 0.28, "capacity_util": 0.85,
+    },
+    "PLT_Taipei": {
+        "country": "TW", "region": "Taipei", "lat": 25.033, "lon": 121.565,
+        "labor_rate": 14.00, "overhead_rate": 0.30, "capacity_util": 0.82,
+    },
+    "PLT_Munich": {
+        "country": "DE", "region": "Munich", "lat": 48.137, "lon": 11.576,
+        "labor_rate": 32.00, "overhead_rate": 0.40, "capacity_util": 0.78,
+    },
+    "PLT_Stuttgart": {
+        "country": "DE", "region": "Stuttgart", "lat": 48.776, "lon": 9.183,
+        "labor_rate": 30.00, "overhead_rate": 0.38, "capacity_util": 0.80,
+    },
+    "PLT_Detroit": {
+        "country": "US", "region": "Detroit", "lat": 42.331, "lon": -83.046,
+        "labor_rate": 25.00, "overhead_rate": 0.35, "capacity_util": 0.75,
+    },
+    "PLT_Austin": {
+        "country": "US", "region": "Austin", "lat": 30.267, "lon": -97.743,
+        "labor_rate": 28.00, "overhead_rate": 0.32, "capacity_util": 0.83,
+    },
+    "PLT_Guadalajara": {
+        "country": "MX", "region": "Guadalajara", "lat": 20.659, "lon": -103.349,
+        "labor_rate": 6.50, "overhead_rate": 0.22, "capacity_util": 0.90,
+    },
+    "PLT_Pune": {
+        "country": "IN", "region": "Pune", "lat": 18.520, "lon": 73.857,
+        "labor_rate": 4.50, "overhead_rate": 0.20, "capacity_util": 0.87,
+    },
+    "PLT_Chennai": {
+        "country": "IN", "region": "Chennai", "lat": 13.083, "lon": 80.270,
+        "labor_rate": 4.00, "overhead_rate": 0.18, "capacity_util": 0.91,
+    },
+    "PLT_Tokyo": {
+        "country": "JP", "region": "Tokyo", "lat": 35.682, "lon": 139.759,
+        "labor_rate": 22.00, "overhead_rate": 0.35, "capacity_util": 0.79,
+    },
+    "PLT_Osaka": {
+        "country": "JP", "region": "Osaka", "lat": 34.694, "lon": 135.502,
+        "labor_rate": 20.00, "overhead_rate": 0.33, "capacity_util": 0.81,
+    },
 }
 
 PLANT_WEIGHTS = {

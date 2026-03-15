@@ -5,15 +5,15 @@ Launch:  streamlit run app/dashboard/dashboard.py
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 # Ensure GlowCast root is on sys.path so `app.dashboard.*` imports resolve
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-import streamlit as st
+import streamlit as st  # noqa: E402
 
 st.set_page_config(
     page_title="GlowCast — Cost & Commercial Analytics",

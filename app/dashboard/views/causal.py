@@ -30,7 +30,7 @@ def render(metric_card) -> None:
         ("CUPED rho", f"{cuped['rho']:.2f}", f"-{cuped['variance_reduction']:.0%} variance"),
         ("Observations", f"{dowhy['n_obs']:,}", "Cost transactions"),
     ]
-    for col, (t, v, s) in zip(cols, cards):
+    for col, (t, v, s) in zip(cols, cards, strict=True):
         col.markdown(metric_card(t, v, s), unsafe_allow_html=True)
 
     st.markdown("---")

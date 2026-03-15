@@ -29,7 +29,7 @@ def render(metric_card) -> None:
         ("DoWhy ATE", f"${kpi['ate_cost_reduction']:.2f}", "Causal cost impact"),
         ("CUPED Reduction", f"{kpi['cuped_variance_reduction']:.0%}", "Experiment variance"),
     ]
-    for col, (title, value, sub) in zip(cols, cards):
+    for col, (title, value, sub) in zip(cols, cards, strict=True):
         col.markdown(metric_card(title, value, sub), unsafe_allow_html=True)
 
     st.markdown("---")
@@ -102,7 +102,7 @@ def render(metric_card) -> None:
     st.subheader("Platform Data Flow")
     flow = load_platform_flow()
     labels = list(set(flow["source"].tolist() + flow["target"].tolist()))
-    label_map = {l: i for i, l in enumerate(labels)}
+    label_map = {label: i for i, label in enumerate(labels)}
 
     fig = go.Figure(go.Sankey(
         node=dict(label=labels, color="#3d3d5c", pad=15, thickness=20),

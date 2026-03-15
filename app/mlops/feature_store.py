@@ -330,7 +330,7 @@ class FeatureStore:
 
         records: list[pd.DataFrame] = []
 
-        for uid, grp in Y_df.groupby("unique_id", sort=False):
+        for _uid, grp in Y_df.groupby("unique_id", sort=False):
             grp = grp.sort_values("ds").copy()
 
             # Shift y by 1 day — the fundamental leakage guard.

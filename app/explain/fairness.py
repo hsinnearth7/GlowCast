@@ -383,7 +383,7 @@ class FairnessAnalyzer:
         cat_index = {c: i for i, c in enumerate(categories)}
         bin_index = {b: j for j, b in enumerate(unique_bins)}
 
-        for c, b in zip(cat_arr, error_bins):
+        for c, b in zip(cat_arr, error_bins, strict=True):
             table[cat_index[c], bin_index[b]] += 1
 
         chi2, p_val, dof, _ = stats.chi2_contingency(table)

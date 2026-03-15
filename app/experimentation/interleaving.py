@@ -356,7 +356,7 @@ class InterleavingAnalyzer:
         total_clicks_a = 0
         total_clicks_b = 0
 
-        for ra, rb in zip(rankings_a, rankings_b):
+        for ra, rb in zip(rankings_a, rankings_b, strict=True):
             interleaved, team_a, team_b = self.team_draft(ra, rb, k=min(k, len(set(ra) | set(rb))))
             clicks = click_model(interleaved)
             result = self.compute_delta(interleaved, clicks, team_a, team_b)

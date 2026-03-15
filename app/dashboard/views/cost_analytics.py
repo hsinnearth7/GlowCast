@@ -27,7 +27,7 @@ def render(metric_card) -> None:
         ("Top Gap Category", "Components", "Highest variance"),
         ("Commodities Tracked", "5", "Daily price index"),
     ]
-    for col, (t, v, s) in zip(cols, cards):
+    for col, (t, v, s) in zip(cols, cards, strict=True):
         col.markdown(metric_card(t, v, s), unsafe_allow_html=True)
 
     st.markdown("---")

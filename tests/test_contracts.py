@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from app.data.contracts import (
     COST_VARIANCE_SCHEMA,

@@ -15,15 +15,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fastapi.responses import Response
 from prometheus_client import (
     CollectorRegistry,
     Counter,
     Gauge,
     Histogram,
     Summary,
+)
+from prometheus_client import (
     generate_latest as _generate_latest,
 )
-from fastapi.responses import Response
 
 if TYPE_CHECKING:
     pass

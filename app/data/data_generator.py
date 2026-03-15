@@ -24,14 +24,11 @@ import pandas as pd
 import pandera
 
 from app.data.segment_genes import (
-    CATEGORIES,
     COMMODITIES,
     COMMODITY_BASE_PRICES,
     COMMODITY_SEASONAL_PHASE,
     COMMODITY_VOLATILITY,
     COST_REDUCTION_ACTIONS,
-    COST_TIERS,
-    DIRECTION_PHASE,
     PLANT_DEFINITIONS,
     PLANT_WEIGHTS,
     SEGMENT_GENES,
@@ -159,7 +156,7 @@ class CostDataGenerator:
                 target_cost = base_cost * (1 - self.rng.uniform(0.05, 0.15))
 
                 commodity = self.rng.choice(COMMODITIES)
-                supplier = self.rng.choice(supplier_ids)
+                _supplier = self.rng.choice(supplier_ids)  # noqa: F841 (preserves RNG state)
 
                 records.append({
                     "sku_id": f"SKU_{sku_idx:04d}",

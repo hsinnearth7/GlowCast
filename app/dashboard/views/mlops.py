@@ -29,7 +29,7 @@ def render(metric_card) -> None:
         ("Top Feature", "commodity_index", "Highest SHAP importance"),
         ("Model Age", "14 days", "Since last retrain"),
     ]
-    for col, (t, v, s) in zip(cols, cards):
+    for col, (t, v, s) in zip(cols, cards, strict=True):
         col.markdown(metric_card(t, v, s), unsafe_allow_html=True)
 
     st.markdown("---")

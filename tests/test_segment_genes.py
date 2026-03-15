@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.data.segment_genes import (
     CATEGORIES,
     COMMODITIES,

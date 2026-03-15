@@ -55,9 +55,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    import mlflow  # type: ignore[import]
     import mlflow.sklearn  # type: ignore[import]
     from mlflow.tracking import MlflowClient  # type: ignore[import]
+
+    import mlflow  # type: ignore[import]
     _MLFLOW_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _MLFLOW_AVAILABLE = False

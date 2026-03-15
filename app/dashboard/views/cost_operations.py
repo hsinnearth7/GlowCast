@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -27,7 +26,7 @@ def render(metric_card) -> None:
         ("Buy Recommended", "6", "Cost advantage > 5%"),
         ("Cost Anomalies", "8", "Z-score > 2.5"),
     ]
-    for col, (t, v, s) in zip(cols, cards):
+    for col, (t, v, s) in zip(cols, cards, strict=True):
         col.markdown(metric_card(t, v, s), unsafe_allow_html=True)
 
     st.markdown("---")

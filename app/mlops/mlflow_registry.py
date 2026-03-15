@@ -42,9 +42,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    import mlflow
-    from mlflow.tracking import MlflowClient
     from mlflow.entities.model_registry import ModelVersion
+    from mlflow.tracking import MlflowClient
+
+    import mlflow
     _MLFLOW_AVAILABLE = True
 except ImportError:
     _MLFLOW_AVAILABLE = False
