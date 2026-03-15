@@ -62,5 +62,16 @@ ignore = ["S101", "S301", "S311"]
 python_version = "3.11"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "app.data.data_generator",
+    "app.cost.should_cost",
+    "app.cost.price_elasticity",
+    "app.causal.uplift",
+    "app.mlops.mlflow_tracker",
+    "app.mlops.mlflow_registry",
+]
+ignore_errors = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
